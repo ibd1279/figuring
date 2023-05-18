@@ -83,7 +83,9 @@ func (p Pt) OrErr() (Pt, *FloatingPointError) {
 
 // String outputs the points coordinates.
 func (p Pt) String() string {
-	return fmt.Sprintf("Point({%0.5f, %0.5f})", p.xy[0], p.xy[1])
+	return fmt.Sprintf("Point({%s, %s})",
+		HumanFormat(9, p.xy[0]),
+		HumanFormat(9, p.xy[1]))
 }
 
 // Add \c b to \c p to get a new Pt.
@@ -215,7 +217,9 @@ func (v Vector) OrErr() (Vector, *FloatingPointError) {
 
 // String outputs the units.
 func (v Vector) String() string {
-	return fmt.Sprintf("Vector(Point({%0.5f, %0.5f}))", v.ij[0], v.ij[1])
+	return fmt.Sprintf("Vector(Point({%s, %s}))",
+		HumanFormat(9, v.ij[0]),
+		HumanFormat(9, v.ij[1]))
 }
 
 // Rotate creates a new vector that has been rotated \c theta radians

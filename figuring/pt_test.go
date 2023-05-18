@@ -11,8 +11,8 @@ func TestPt(t *testing.T) {
 		s    string
 		x, y Length
 	}{
-		{PtXy(10, 10), "Point({10.00000, 10.00000})", 10, 10},
-		{PtXy(-12, -32), "Point({-12.00000, -32.00000})", -12, -32},
+		{PtXy(10, 10), "Point({10, 10})", 10, 10},
+		{PtXy(-12, -32), "Point({-12, -32})", -12, -32},
 	}
 	for h, test := range identityTests {
 		p := test.p
@@ -99,10 +99,10 @@ func TestVector(t *testing.T) {
 		s    string
 		i, j Length
 	}{
-		{VectorIj(10, 10), "Vector(Point({10.00000, 10.00000}))", 10, 10},
-		{VectorIj(-4.4, 3.3), "Vector(Point({-4.40000, 3.30000}))", -4.4, 3.3},
-		{VectorIj(0.22, -0.55), "Vector(Point({0.22000, -0.55000}))", 0.22, -0.55},
-		{VectorZero, "Vector(Point({0.00000, 0.00000}))", 0, 0},
+		{VectorIj(10, 10), "Vector(Point({10, 10}))", 10, 10},
+		{VectorIj(-4.4, 3.3), "Vector(Point({-4.4, 3.3}))", -4.4, 3.3},
+		{VectorIj(0.22, -0.55), "Vector(Point({0.22, -0.55}))", 0.22, -0.55},
+		{VectorZero, "Vector(Point({0, 0}))", 0, 0},
 	}
 	for h, test := range identityTests {
 		v := test.v

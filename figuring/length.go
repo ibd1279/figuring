@@ -3,6 +3,7 @@ package figuring
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/go-gl/mathgl/mgl64"
 )
@@ -261,3 +262,16 @@ func IsZero[T Radians | Length | float64](a T) bool {
 
 // Signbit tests if the (negative) sign bit is set on a value.
 func Signbit[T Radians | Length | float64](a T) bool { return math.Signbit(float64(a)) }
+
+func HumanFormat[T Radians | Length | float64](percision int, v T) string {
+	fmtstr := fmt.Sprintf("%%.%df", percision)
+	str := fmt.Sprintf(fmtstr, v)
+	idx := strings.LastIndexAny(str, "123456789.")
+	if idx > -1 {
+		str = str[:idx+1]
+	}
+	if strings.HasSuffix(str, ".") {
+		str = str[:len(str)-1]
+	}
+	return str
+}
