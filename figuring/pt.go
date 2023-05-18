@@ -331,6 +331,16 @@ func ScalePts(v Vector, pts []Pt) []Pt {
 	return ret
 }
 
+// Limits returns the min-x, max-x, min-y, max-y in that order.
+func LimitsPts(pts []Pt) (Length, Length, Length, Length) {
+	xs := make([]Length, len(pts))
+	ys := make([]Length, len(pts))
+	for h, p := range pts {
+		xs[h], ys[h] = p.X(), p.Y()
+	}
+	return Minimum(xs...), Maximum(xs...), Minimum(ys...), Maximum(ys...)
+}
+
 func IsEqualPair[T Pair](a, b T) bool {
 	ax, ay := a.Units()
 	bx, by := b.Units()
