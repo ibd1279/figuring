@@ -12,8 +12,8 @@ type Coefficienter interface {
 }
 
 var (
-	LineXAxis Linear = LinearAbc(0, 1, 0)
-	LineYAxis Linear = LinearAbc(1, 0, 0)
+	LineXAxis Line = LineAbc(0, 1, 0)
+	LineYAxis Line = LineAbc(1, 0, 0)
 )
 
 type SlopeType uint
@@ -26,18 +26,17 @@ const (
 	LINE_DIRECTION_MIXED
 )
 
-// Linear Equation that represents a line. ax+by+c=0.
+// Line Equation that represents a line. ax+by+c=0.
 // See https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=1000&context=facpub
-type Linear struct {
+type Line struct {
 	abc mgl64.Vec3
 	s   SlopeType
 }
 
-func LinearAbc(a, b, c Length) Linear {
-	return LinearFromVec3(mgl64.Vec3{float64(a), float64(b), float64(c)})
+func LineAbc(a, b, c Length) Line {
+	return LineFromVec3(mgl64.Vec3{float64(a), float64(b), float64(c)})
 }
-
-func LinearFromVec3(abc mgl64.Vec3) Linear {
+func LineFromVec3(abc mgl64.Vec3) Line {
 	if IsZero(abc[2]) {
 		abc[2] = 0
 	}
@@ -58,31 +57,23 @@ func LinearFromVec3(abc mgl64.Vec3) Linear {
 	default:
 		s = LINE_DIRECTION_MIXED
 	}
-	return Linear{
+	return Line{
 		abc: abc,
 		s:   s,
 	}
 }
-
-func LinearFromVector(p1 Pt, v Vector) Linear {
+func LineFromVector(p1 Pt, v Vector) Line {
 	b, a := v.Units()
 	c := p1.X()*a - p1.Y()*b
-	return LinearAbc(a, -b, c)
+	return LineAbc(a, -b, c)
 }
+func LineFromPt(p1, p2 Pt) Line { return LineFromVector(p1, p1.VectorTo(p2)) }
 
-func LinearFromPt(p1, p2 Pt) Linear {
-	return LinearFromVector(p1, p1.VectorTo(p2))
-}
-
-func (le Linear) Abc() (Length, Length, Length) {
+func (le Line) Abc() (Length, Length, Length) {
 	return Length(le.abc[0]), Length(le.abc[1]), Length(le.abc[2])
 }
-
-func (le Linear) Coefficients() []float64 {
-	return le.abc[:]
-}
-
-func (le Linear) OrErr() (Linear, *FloatingPointError) {
+func (le Line) Coefficients() []float64 { return le.abc[:] }
+func (le Line) OrErr() (Line, *FloatingPointError) {
 	if le.s == LINE_DIRECTION_UNKNOWN {
 		return le, &FloatingPointError{math.Inf(1)}
 	}
@@ -96,8 +87,7 @@ func (le Linear) OrErr() (Linear, *FloatingPointError) {
 	}
 	return le, nil
 }
-
-func (le Linear) String() string {
+func (le Line) String() string {
 	var str string
 	switch le.s {
 	case LINE_DIRECTION_UNKNOWN:
@@ -129,16 +119,16 @@ func (le Linear) String() string {
 	}
 	return str
 }
-
-func (le Linear) IsHorizontal() bool { return le.s == LINE_DIRECTION_HORIZONTAL }
-func (le Linear) IsVertical() bool   { return le.s == LINE_DIRECTION_VERTICAL }
-func (le Linear) NormalizeX() Linear {
-	return LinearFromVec3(mgl64.Vec3{1, le.abc[1] / le.abc[0], le.abc[2] / le.abc[0]})
+func (le Line) IsHorizontal() bool { return le.s == LINE_DIRECTION_HORIZONTAL }
+func (le Line) IsVertical() bool   { return le.s == LINE_DIRECTION_VERTICAL }
+func (le Line) IsUnknown() bool    { return le.s == LINE_DIRECTION_UNKNOWN }
+func (le Line) NormalizeX() Line {
+	return LineFromVec3(mgl64.Vec3{1, le.abc[1] / le.abc[0], le.abc[2] / le.abc[0]})
 }
-func (le Linear) NormalizeY() Linear {
-	return LinearFromVec3(mgl64.Vec3{le.abc[0] / le.abc[1], 1, le.abc[2] / le.abc[1]})
+func (le Line) NormalizeY() Line {
+	return LineFromVec3(mgl64.Vec3{le.abc[0] / le.abc[1], 1, le.abc[2] / le.abc[1]})
 }
-func (le Linear) XForY(y Length) Length {
+func (le Line) XForY(y Length) Length {
 	switch le.s {
 	case LINE_DIRECTION_VERTICAL:
 		return Length(le.abc[2] / le.abc[0])
@@ -151,7 +141,7 @@ func (le Linear) XForY(y Length) Length {
 	a, b, c := le.Abc()
 	return -b*y/a + c/a
 }
-func (le Linear) YForX(x Length) Length {
+func (le Line) YForX(x Length) Length {
 	switch le.s {
 	case LINE_DIRECTION_HORIZONTAL:
 		return Length(le.abc[2] / le.abc[1])
@@ -164,16 +154,16 @@ func (le Linear) YForX(x Length) Length {
 	a, b, c := le.Abc()
 	return -a*x/b + c/b
 }
-func (le Linear) Vector() Vector {
+func (le Line) Vector() Vector {
 	ij := mgl64.Vec2{-le.abc[1], le.abc[0]}
 	return VectorFromVec2(ij).Normalize()
 }
-func (le Linear) Angle() Radians {
+func (le Line) Angle() Radians {
 	return le.Vector().Angle()
 }
-
-type OrderedPtser interface {
-	Points() []Pt
+func (le Line) Roots() []Pt {
+	x := le.XForY(0)
+	return []Pt{PtXy(x, 0)}
 }
 
 // Segment represents a line with a fixed slope between two points.
@@ -202,25 +192,75 @@ func (s Segment) OrErr() (Segment, *FloatingPointError) {
 	}
 	return s, nil
 }
-
 func (s Segment) String() string {
 	return fmt.Sprintf("Segment(%v, %v)", s.b, s.e)
 }
-
-// Reverse swaps the begin and end points of the segment.
 func (s Segment) Reverse() Segment { return SegmentPt(s.e, s.b) }
 
-func IsEqualEquations[T Coefficienter](a, b T) bool {
-	as, bs := a.Coefficients(), b.Coefficients()
-	if len(as) != len(bs) {
-		return false
+// ParamCurve is a curve defined by a pair of parametric functions.
+type ParamCurve struct {
+	pts  []Pt
+	x, y Derivable
+}
+
+func ParamLinear(p1, p2 Pt) ParamCurve {
+	ax, bx := -p1.X()+p2.X(), p1.X()
+	ay, by := -p1.Y()+p2.Y(), p1.Y()
+	return ParamCurve{
+		pts: []Pt{p1, p2},
+		x:   LinearAb(float64(ax), float64(bx)),
+		y:   LinearAb(float64(ay), float64(by)),
 	}
-	for h := 0; h < len(as); h++ {
-		if !IsEqual(as[h], bs[h]) {
-			return false
-		}
+}
+func ParamQuadratic(p1, p2, p3 Pt) ParamCurve {
+	M := mgl64.Mat3{
+		1, -2, 1,
+		0, 2, -2,
+		0, 0, 1,
 	}
-	return true
+	px := mgl64.Vec3{float64(p1.X()), float64(p2.X()), float64(p3.X())}
+	py := mgl64.Vec3{float64(p1.Y()), float64(p2.Y()), float64(p3.Y())}
+	xs, ys := M.Mul3x1(px), M.Mul3x1(py)
+	return ParamCurve{
+		pts: []Pt{p1, p2, p3},
+		x:   QuadraticAbc(xs[2], xs[1], xs[0]),
+		y:   QuadraticAbc(ys[2], ys[1], ys[0]),
+	}
+}
+func ParamCubic(p1, p2, p3, p4 Pt) ParamCurve {
+	M := mgl64.Mat4{
+		1, -3, 3, -1,
+		0, 3, -6, 3,
+		0, 0, 3, -3,
+		0, 0, 0, 1,
+	}
+	px := mgl64.Vec4{float64(p1.X()), float64(p2.X()), float64(p3.X()), float64(p4.X())}
+	py := mgl64.Vec4{float64(p1.Y()), float64(p2.Y()), float64(p3.Y()), float64(p4.Y())}
+	xs, ys := M.Mul4x1(px), M.Mul4x1(py)
+	return ParamCurve{
+		pts: []Pt{p1, p2, p3, p4},
+		x:   CubicAbcd(xs[3], xs[2], xs[1], xs[0]),
+		y:   CubicAbcd(ys[3], ys[2], ys[1], ys[0]),
+	}
+}
+
+func (pc ParamCurve) String() string {
+	unknown := 't'
+	return fmt.Sprintf("Curve(%s, %s, %c, 0, 1)",
+		pc.x.Text(unknown, false),
+		pc.y.Text(unknown, false),
+		unknown,
+	)
+}
+func (pc ParamCurve) PtAtT(t float64) Pt {
+	x, y := pc.x.AtT(t), pc.y.AtT(t)
+	return PtXy(Length(x), Length(y))
+}
+func (pc ParamCurve) TangentAtT(t float64) (Vector, Vector) {
+	ieq, jeq := pc.x.Derivative(), pc.y.Derivative()
+	i, j := ieq.AtT(t), jeq.AtT(t)
+	tangent := VectorIj(Length(i), Length(j)).Normalize()
+	return tangent, tangent.Rotate(0.5 * math.Pi)
 }
 
 func IsEqualPts[T OrderedPtser](a, b T) bool {
