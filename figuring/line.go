@@ -197,50 +197,55 @@ func (s Segment) String() string {
 }
 func (s Segment) Reverse() Segment { return SegmentPt(s.e, s.b) }
 
-// ParamCurve is a curve defined by a pair of parametric functions.
+// ParamCurve is a curve defined by a pair of parametric functions. It doesn't
+// provide a lot of functionality, but does provide an easy way to recreate
+// curves based on polynomial equations.
 type ParamCurve struct {
-	pts  []Pt
-	x, y Derivable
+	x, y     Derivable
+	min, max float64
 }
 
 func ParamLinear(p1, p2 Pt) ParamCurve {
 	ax, bx := -p1.X()+p2.X(), p1.X()
 	ay, by := -p1.Y()+p2.Y(), p1.Y()
 	return ParamCurve{
-		pts: []Pt{p1, p2},
 		x:   LinearAb(float64(ax), float64(bx)),
 		y:   LinearAb(float64(ay), float64(by)),
+		min: 0,
+		max: 1.0,
 	}
 }
 func ParamQuadratic(p1, p2, p3 Pt) ParamCurve {
 	M := mgl64.Mat3{
+		1, 0, 0,
+		-2, 2, 0,
 		1, -2, 1,
-		0, 2, -2,
-		0, 0, 1,
 	}
-	px := mgl64.Vec3{float64(p1.X()), float64(p2.X()), float64(p3.X())}
-	py := mgl64.Vec3{float64(p1.Y()), float64(p2.Y()), float64(p3.Y())}
+	px := mgl64.Vec3{float64(p3.X()), float64(p2.X()), float64(p1.X())}
+	py := mgl64.Vec3{float64(p3.Y()), float64(p2.Y()), float64(p1.Y())}
 	xs, ys := M.Mul3x1(px), M.Mul3x1(py)
 	return ParamCurve{
-		pts: []Pt{p1, p2, p3},
-		x:   QuadraticAbc(xs[2], xs[1], xs[0]),
-		y:   QuadraticAbc(ys[2], ys[1], ys[0]),
+		x:   QuadraticFromVec3(xs),
+		y:   QuadraticFromVec3(ys),
+		min: 0,
+		max: 1.0,
 	}
 }
 func ParamCubic(p1, p2, p3, p4 Pt) ParamCurve {
 	M := mgl64.Mat4{
-		1, -3, 3, -1,
-		0, 3, -6, 3,
-		0, 0, 3, -3,
-		0, 0, 0, 1,
+		1, 0, 0, 0,
+		-3, 3, 0, 0,
+		3, -6, 3, 0,
+		-1, 3, -3, 1,
 	}
-	px := mgl64.Vec4{float64(p1.X()), float64(p2.X()), float64(p3.X()), float64(p4.X())}
-	py := mgl64.Vec4{float64(p1.Y()), float64(p2.Y()), float64(p3.Y()), float64(p4.Y())}
+	px := mgl64.Vec4{float64(p4.X()), float64(p3.X()), float64(p2.X()), float64(p1.X())}
+	py := mgl64.Vec4{float64(p4.Y()), float64(p3.Y()), float64(p2.Y()), float64(p1.Y())}
 	xs, ys := M.Mul4x1(px), M.Mul4x1(py)
 	return ParamCurve{
-		pts: []Pt{p1, p2, p3, p4},
-		x:   CubicAbcd(xs[3], xs[2], xs[1], xs[0]),
-		y:   CubicAbcd(ys[3], ys[2], ys[1], ys[0]),
+		x:   CubicFromVec4(xs),
+		y:   CubicFromVec4(ys),
+		min: 0,
+		max: 1.0,
 	}
 }
 
