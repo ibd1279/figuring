@@ -12,13 +12,8 @@ import (
 type Polynomial interface {
 	// Degree is the polynomial degree. Also known as the largest exponent.
 	Degree() int
-	// Coefficients is the coefficients of the equation in order from
-	// highest degree to least.
-	Coefficients() []float64
 	// AtT evaluates the polynomial equation for the provided t value.
 	AtT(float64) float64
-	// Roots returns the roots of the equation.
-	Roots() []float64
 	// Text returns a string representing the polynomial. The first
 	// argument is the value to use for the variable in the formula. the
 	// second argument turns on or off the function prefix.
@@ -84,9 +79,10 @@ func (le Linear) Roots() []float64 {
 	}
 	return []float64{-b / a}
 }
-func (le Linear) Derivative() Polynomial { return ConstantA(le.ab[0]) }
-func (le Linear) Ab() (float64, float64) { return le.ab[0], le.ab[1] }
-func (le Linear) String() string         { return le.Text('t', true) }
+func (le Linear) Derivative() Polynomial    { return le.FirstDerivative() }
+func (le Linear) FirstDerivative() Constant { return ConstantA(le.ab[0]) }
+func (le Linear) Ab() (float64, float64)    { return le.ab[0], le.ab[1] }
+func (le Linear) String() string            { return le.Text('t', true) }
 func (le Linear) Text(unknown rune, addPrefix bool) string {
 	a, b := le.Ab()
 	ab := '+'
@@ -145,7 +141,8 @@ func (qad Quadratic) Roots() []float64 {
 	g := math.Sqrt(D) / (2 * a)
 	return []float64{f + g, f - g}
 }
-func (qad Quadratic) Derivative() Polynomial           { return LinearAb(2*qad.abc[0], qad.abc[1]) }
+func (qad Quadratic) Derivative() Polynomial           { return qad.FirstDerivative() }
+func (qad Quadratic) FirstDerivative() Linear          { return LinearAb(2*qad.abc[0], qad.abc[1]) }
 func (qad Quadratic) Abc() (float64, float64, float64) { return qad.abc[0], qad.abc[1], qad.abc[2] }
 func (qad Quadratic) String() string                   { return qad.Text('t', true) }
 func (qad Quadratic) Text(unknown rune, addPrefix bool) string {
@@ -241,7 +238,8 @@ func (cub Cubic) Roots() []float64 {
 
 	return roots
 }
-func (cub Cubic) Derivative() Polynomial {
+func (cub Cubic) Derivative() Polynomial { return cub.FirstDerivative() }
+func (cub Cubic) FirstDerivative() Quadratic {
 	a, b, c, _ := cub.Abcd()
 	return QuadraticAbc(3*a, 2*b, c)
 }

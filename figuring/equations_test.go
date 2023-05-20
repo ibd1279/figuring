@@ -81,7 +81,7 @@ func TestLinearPolynomial(t *testing.T) {
 		s          string
 		cofs       []float64
 		roots      []float64
-		derivative Polynomial
+		derivative Constant
 	}{
 		{LinearAb(13, 2), "f(t)=13t+2", []float64{13, 2}, []float64{-0.153846153846}, ConstantA(13)},
 		{LinearAb(0.4, -2), "f(t)=0.4t-2", []float64{0.4, -2}, []float64{5}, ConstantA(0.4)},
@@ -125,10 +125,10 @@ func TestLinearPolynomial(t *testing.T) {
 		}
 
 		var poly Polynomial = eq
-		if derivable, ok := poly.(Derivable); !ok {
+		if _, ok := poly.(Derivable); !ok {
 			t.Errorf("[%d](%v).Derivitive() failed. couldn't be converted for %T",
 				h, eq, eq)
-		} else if deq := derivable.Derivative(); !IsEqualEquations(deq, test.derivative) {
+		} else if deq := eq.FirstDerivative(); !IsEqualEquations(deq, test.derivative) {
 			t.Errorf("[%d](%v).Derivitive() failed. %v != %v",
 				h, eq, deq, test.derivative)
 		}
@@ -165,7 +165,7 @@ func TestQuadraticPolynomial(t *testing.T) {
 		s          string
 		cofs       []float64
 		roots      []float64
-		derivative Polynomial
+		derivative Linear
 	}{
 		{QuadraticAbc(3, 13, 2), "f(t)=3t^2+13t+2", []float64{3, 13, 2},
 			[]float64{-0.159734236868, -4.1735990964654}, LinearAb(6, 13)},
@@ -213,10 +213,10 @@ func TestQuadraticPolynomial(t *testing.T) {
 		}
 
 		var poly Polynomial = eq
-		if derivable, ok := poly.(Derivable); !ok {
+		if _, ok := poly.(Derivable); !ok {
 			t.Errorf("[%d](%v).Derivitive() failed. couldn't be converted for %T",
 				h, eq, eq)
-		} else if deq := derivable.Derivative(); !IsEqualEquations(deq, test.derivative) {
+		} else if deq := eq.FirstDerivative(); !IsEqualEquations(deq, test.derivative) {
 			t.Errorf("[%d](%v).Derivitive() failed. %v != %v",
 				h, eq, deq, test.derivative)
 		}
@@ -281,7 +281,7 @@ func TestCubicPolynomial(t *testing.T) {
 		s          string
 		cofs       []float64
 		roots      []float64
-		derivative Polynomial
+		derivative Quadratic
 	}{
 		{CubicAbcd(-1, 3, 13, 2), "f(t)=-1t^3+3t^2+13t+2", []float64{-1, 3, 13, 2},
 			[]float64{5.4518160678303, -0.1600748979807, -2.2917411698496},
@@ -331,10 +331,10 @@ func TestCubicPolynomial(t *testing.T) {
 		}
 
 		var poly Polynomial = eq
-		if derivable, ok := poly.(Derivable); !ok {
+		if _, ok := poly.(Derivable); !ok {
 			t.Errorf("[%d](%v).Derivitive() failed. couldn't be converted for %T",
 				h, eq, eq)
-		} else if deq := derivable.Derivative(); !IsEqualEquations(deq, test.derivative) {
+		} else if deq := eq.FirstDerivative(); !IsEqualEquations(deq, test.derivative) {
 			t.Errorf("[%d](%v).Derivitive() failed. %v != %v",
 				h, eq, deq, test.derivative)
 		}
