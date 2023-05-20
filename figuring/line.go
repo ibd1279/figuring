@@ -251,17 +251,21 @@ func ParamCubic(p1, p2, p3, p4 Pt) ParamCurve {
 
 func (pc ParamCurve) String() string {
 	unknown := 't'
-	return fmt.Sprintf("Curve(%s, %s, %c, 0, 1)",
+	return fmt.Sprintf("Curve(%s, %s, %c, %s, %s)",
 		pc.x.Text(unknown, false),
 		pc.y.Text(unknown, false),
 		unknown,
+		HumanFormat(9, pc.min),
+		HumanFormat(9, pc.max),
 	)
 }
 func (pc ParamCurve) PtAtT(t float64) Pt {
+	t = Clamp(pc.min, t, pc.max)
 	x, y := pc.x.AtT(t), pc.y.AtT(t)
 	return PtXy(Length(x), Length(y))
 }
 func (pc ParamCurve) TangentAtT(t float64) (Vector, Vector) {
+	t = Clamp(pc.min, t, pc.max)
 	ieq, jeq := pc.x.Derivative(), pc.y.Derivative()
 	i, j := ieq.AtT(t), jeq.AtT(t)
 	tangent := VectorIj(Length(i), Length(j)).Normalize()

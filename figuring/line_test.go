@@ -278,8 +278,8 @@ func TestParamCurve(t *testing.T) {
 			t.Errorf("[%d](%s).PtAtT(0.67) failed. %v != %v",
 				h, a, p, test.p67)
 		}
-		if p := a.PtAtT(1); !IsEqualPair(p, test.p2) {
-			t.Errorf("[%d](%s).PtAtT(1) failed. %v != %v",
+		if p := a.PtAtT(2); !IsEqualPair(p, test.p2) {
+			t.Errorf("[%d](%s).PtAtT(2) failed. %v != %v",
 				h, a, p, test.p2)
 		}
 	}
@@ -328,8 +328,8 @@ func TestParamCurve(t *testing.T) {
 			t.Errorf("[%d](%s).PtAtT(0.67) failed. %v != %v",
 				h, a, p, test.p67)
 		}
-		if p := a.PtAtT(1); !IsEqualPair(p, test.p3) {
-			t.Errorf("[%d](%s).PtAtT(1) failed. %v != %v",
+		if p := a.PtAtT(2); !IsEqualPair(p, test.p3) {
+			t.Errorf("[%d](%s).PtAtT(2) failed. %v != %v",
 				h, a, p, test.p3)
 		}
 		if tt, _ := a.TangentAtT(0.33); !IsEqualPair(tt, test.t33) {
@@ -416,8 +416,8 @@ func TestParamCurve(t *testing.T) {
 			t.Errorf("[%d](%s).PtAtT(0.67) failed. %v != %v",
 				h, a, p, test.p67)
 		}
-		if p := a.PtAtT(1); !IsEqualPair(p, test.p4) {
-			t.Errorf("[%d](%s).PtAtT(1) failed. %v != %v",
+		if p := a.PtAtT(2); !IsEqualPair(p, test.p4) {
+			t.Errorf("[%d](%s).PtAtT(2) failed. %v != %v",
 				h, a, p, test.p3)
 		}
 		if tt, _ := a.TangentAtT(0.33); !IsEqualPair(tt, test.t33) {
