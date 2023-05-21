@@ -14,6 +14,8 @@ type Polynomial interface {
 	Degree() int
 	// AtT evaluates the polynomial equation for the provided t value.
 	AtT(float64) float64
+	// Roots returns the roots (where the equation is equal to zero).
+	Roots() []float64
 	// Text returns a string representing the polynomial. The first
 	// argument is the value to use for the variable in the formula. the
 	// second argument turns on or off the function prefix.

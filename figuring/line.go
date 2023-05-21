@@ -166,6 +166,115 @@ func (le Line) Roots() []Pt {
 	return []Pt{PtXy(x, 0)}
 }
 
+func RotateOrTranslateToXAxis(a Line, pts []Pt) []Pt {
+	if a.IsHorizontal() {
+		y := a.YForX(0)
+		if !IsZero(y) {
+			trans := PtXy(0, y).VectorTo(PtOrig)
+			pts = TranslatePts(trans, pts)
+		}
+	} else {
+		x := a.XForY(0)
+		origin := PtXy(x, 0)
+		theta := -a.Angle()
+		pts = RotatePts(theta, origin, pts)
+	}
+	return pts
+}
+
+func IntersectionLineLine(a, b Line) []Pt {
+	aTheta, bTheta := a.Angle(), b.Angle()
+	if IsEqual(aTheta, bTheta) {
+		// Parallel lines cannot meet in this geometry.
+		// also catches the same line passed twice
+		return nil
+	}
+
+	var p Pt
+	switch {
+	case a.IsVertical():
+		b, a = a, b
+		fallthrough
+	case b.IsVertical():
+		x := b.XForY(0)
+		y := a.YForX(x)
+		p = PtXy(x, y)
+	case a.IsHorizontal():
+		b, a = a, b
+		fallthrough
+	case b.IsHorizontal():
+		y := b.YForX(0)
+		x := a.XForY(y)
+		p = PtXy(x, y)
+	default:
+		na, nb := a.NormalizeY(), b.NormalizeY()
+		ma, _, ba := na.Abc()
+		mb, _, bb := nb.Abc()
+		ma, mb = -ma, -mb
+
+		x := Length((bb - ba) / (mb - ma))
+		y := b.YForX(x)
+		p = PtXy(x, y)
+	}
+
+	return []Pt{p}
+}
+func IntersectionLineSegment(a Line, b Segment) []Pt {
+	bLine := LineFromPt(b.Begin(), b.End())
+	potentialPoints := IntersectionLineLine(a, bLine)
+	if len(potentialPoints) == 0 {
+		return nil
+	}
+
+	lx, mx, ly, my := LimitsPts(b.Points())
+	for _, p := range potentialPoints {
+		x, y := p.XY()
+		if lx <= x && x <= mx && ly <= y && y <= my {
+			return []Pt{p}
+		}
+	}
+	return nil
+}
+func IntersectionLineRectangle(a Line, b Rectangle) []Pt {
+	min, max := b.MinPt(), b.MaxPt()
+
+	var s Segment
+	switch {
+	case a.IsVertical():
+		x := a.XForY(0)
+		s = SegmentPt(PtXy(x, min.Y()), PtXy(x, max.Y()))
+	case a.IsHorizontal():
+		y := a.YForX(0)
+		s = SegmentPt(PtXy(min.X(), y), PtXy(max.X(), y))
+	default:
+		miny := a.YForX(min.X())
+		maxy := a.YForX(max.X())
+		s = SegmentPt(PtXy(min.X(), miny), PtXy(max.X(), maxy))
+	}
+	return IntersectionSegmentRectangle(s, b)
+}
+func IntersectionLineBezier(a Line, b Bezier) []Pt {
+	bb := b.BoundingBox()
+	grossIntersections := IntersectionLineRectangle(a, bb)
+	if len(grossIntersections) == 0 {
+		return nil
+	}
+
+	var pts []Pt = RotateOrTranslateToXAxis(a, b.Points())
+
+	// At this point, the line is now the X axis. Find the roots of the curve.
+	b2 := BezierPt(pts[0], pts[1], pts[2], pts[3])
+	yr := b2.y.Roots()
+	roots := make([]Pt, 0, len(yr))
+	for h := 0; h < len(yr); h++ {
+		if 0 <= yr[h] && yr[h] <= 1.0 {
+			roots = append(roots, b.PtAtT(yr[h]))
+		}
+	}
+
+	return roots
+}
+
 // Segment represents a line with a fixed slope between two points.
 type Segment struct {
 	b, e Pt
@@ -197,79 +306,97 @@ func (s Segment) String() string {
 }
 func (s Segment) Reverse() Segment { return SegmentPt(s.e, s.b) }
 
-// ParamCurve is a curve defined by a pair of parametric functions. It doesn't
-// provide a lot of functionality, but does provide an easy way to recreate
-// curves based on polynomial equations.
-type ParamCurve struct {
-	x, y     Derivable
-	min, max float64
+func IntersectionSegmentSegment(a, b Segment) []Pt {
+	a1 := a.End().Y() - a.Begin().Y()
+	b1 := a.Begin().X() - a.End().X()
+	c1 := a1*a.Begin().X() + b1*a.Begin().Y()
+
+	a2 := b.End().Y() - b.Begin().Y()
+	b2 := b.Begin().X() - b.End().X()
+	c2 := a2*b.Begin().X() + b2*b.Begin().Y()
+
+	det := a1*b2 - a2*b1
+	if IsZero(det) {
+		return nil
+	}
+	x := (b2*c1 - b1*c2) / det
+	y := (a1*c2 - a2*c1) / det
+
+	alx, amx, aly, amy := LimitsPts(a.Points())
+	blx, bmx, bly, bmy := LimitsPts(b.Points())
+
+	lx, mx := Maximum(alx, blx), Minimum(amx, bmx)
+	ly, my := Maximum(aly, bly), Minimum(amy, bmy)
+
+	if lx <= x && x <= mx && ly <= y && y <= my {
+		return []Pt{PtXy(x, y)}
+	}
+	return nil
 }
 
-func ParamLinear(p1, p2 Pt) ParamCurve {
-	ax, bx := -p1.X()+p2.X(), p1.X()
-	ay, by := -p1.Y()+p2.Y(), p1.Y()
-	return ParamCurve{
-		x:   LinearAb(float64(ax), float64(bx)),
-		y:   LinearAb(float64(ay), float64(by)),
-		min: 0,
-		max: 1.0,
-	}
-}
-func ParamQuadratic(p1, p2, p3 Pt) ParamCurve {
-	M := mgl64.Mat3{
-		1, 0, 0,
-		-2, 2, 0,
-		1, -2, 1,
-	}
-	px := mgl64.Vec3{float64(p3.X()), float64(p2.X()), float64(p1.X())}
-	py := mgl64.Vec3{float64(p3.Y()), float64(p2.Y()), float64(p1.Y())}
-	xs, ys := M.Mul3x1(px), M.Mul3x1(py)
-	return ParamCurve{
-		x:   QuadraticFromVec3(xs),
-		y:   QuadraticFromVec3(ys),
-		min: 0,
-		max: 1.0,
-	}
-}
-func ParamCubic(p1, p2, p3, p4 Pt) ParamCurve {
-	M := mgl64.Mat4{
-		1, 0, 0, 0,
-		-3, 3, 0, 0,
-		3, -6, 3, 0,
-		-1, 3, -3, 1,
-	}
-	px := mgl64.Vec4{float64(p4.X()), float64(p3.X()), float64(p2.X()), float64(p1.X())}
-	py := mgl64.Vec4{float64(p4.Y()), float64(p3.Y()), float64(p2.Y()), float64(p1.Y())}
-	xs, ys := M.Mul4x1(px), M.Mul4x1(py)
-	return ParamCurve{
-		x:   CubicFromVec4(xs),
-		y:   CubicFromVec4(ys),
-		min: 0,
-		max: 1.0,
-	}
-}
+// Returns the start and stop points of the segment that exists inside the rectangle.
+func IntersectionSegmentRectangle(a Segment, b Rectangle) []Pt {
+	// based on Liang-Barsky: https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
+	// and https://www.skytopia.com/project/articles/compsci/clipping.html
+	min, max := b.MinPt(), b.MaxPt()
 
-func (pc ParamCurve) String() string {
-	unknown := 't'
-	return fmt.Sprintf("Curve(%s, %s, %c, %s, %s)",
-		pc.x.Text(unknown, false),
-		pc.y.Text(unknown, false),
-		unknown,
-		HumanFormat(9, pc.min),
-		HumanFormat(9, pc.max),
-	)
+	// Clip out a segment that is in the right X coordinate space. Min X value to max X value.
+
+	pnt := a.Begin()
+	vec := pnt.VectorTo(a.End())
+
+	p1, p3 := vec.Invert().Units()
+	p2, p4 := vec.Units()
+
+	q1, q3 := pnt.X()-min.X(), pnt.Y()-min.Y()
+	q2, q4 := max.X()-pnt.X(), max.Y()-pnt.Y()
+
+	posarr, negarr := []Length{1}, []Length{0}
+
+	r1, r2 := q1/p1, q2/p2
+	if p1 < 0 {
+		negarr = append(negarr, r1)
+		posarr = append(posarr, r2)
+	} else {
+		negarr = append(negarr, r2)
+		posarr = append(posarr, r1)
+	}
+
+	r3, r4 := q3/p3, q4/p4
+	if p3 < 0 {
+		negarr = append(negarr, r3)
+		posarr = append(posarr, r4)
+	} else {
+		negarr = append(negarr, r4)
+		posarr = append(posarr, r3)
+	}
+
+	rn1, rn2 := Maximum(negarr...), Minimum(posarr...)
+	if rn1 > rn2 {
+		return nil
+	}
+
+	return []Pt{
+		PtXy(pnt.X()+p2*rn1, pnt.Y()+p4*rn1),
+		PtXy(pnt.X()+p2*rn2, pnt.Y()+p4*rn2),
+	}
 }
-func (pc ParamCurve) PtAtT(t float64) Pt {
-	t = Clamp(pc.min, t, pc.max)
-	x, y := pc.x.AtT(t), pc.y.AtT(t)
-	return PtXy(Length(x), Length(y))
-}
-func (pc ParamCurve) TangentAtT(t float64) (Vector, Vector) {
-	t = Clamp(pc.min, t, pc.max)
-	ieq, jeq := pc.x.Derivative(), pc.y.Derivative()
-	i, j := ieq.AtT(t), jeq.AtT(t)
-	tangent := VectorIj(Length(i), Length(j)).Normalize()
-	return tangent, tangent.Rotate(0.5 * math.Pi)
+func IntersectionSegmentBezier(a Segment, b Bezier) []Pt {
+	aLine := LineFromPt(a.Begin(), a.End())
+	potentialPoints := IntersectionLineBezier(aLine, b)
+	if len(potentialPoints) == 0 {
+		return nil
+	}
+
+	lx, mx, ly, my := LimitsPts(a.Points())
+	points := make([]Pt, 0, len(potentialPoints))
+	for _, p := range potentialPoints {
+		x, y := p.XY()
+		if lx <= x && x <= mx && ly <= y && y <= my {
+			points = append(points, p)
+		}
+	}
+	return points
 }
 
 func IsEqualPts[T OrderedPtser](a, b T) bool {
