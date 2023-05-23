@@ -207,7 +207,7 @@ func (e *FloatingPointError) IsInf() bool    { return math.IsInf(e.v, 0) }
 func (e *FloatingPointError) IsPosInf() bool { return math.IsInf(e.v, 1) }
 func (e *FloatingPointError) IsNegInf() bool { return math.IsInf(e.v, -1) }
 
-// Minimum returns the smallest Radians from a set of Radians
+// Minimum returns the smallest value from a set of values. Discards NaN values.
 func Minimum[T Radians | Length | float64](vals ...T) (ret T) {
 	if len(vals) < 1 {
 		return ret
@@ -222,7 +222,7 @@ func Minimum[T Radians | Length | float64](vals ...T) (ret T) {
 	return ret
 }
 
-// Maximum returns the largest Radians from a set of Radians.
+// Maximum returns the largest value from a set of values. Discards NaN values.
 func Maximum[T Radians | Length | float64](vals ...T) (ret T) {
 	if len(vals) < 1 {
 		return ret

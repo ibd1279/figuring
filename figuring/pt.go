@@ -3,6 +3,7 @@ package figuring
 import (
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/go-gl/mathgl/mgl64"
 )
@@ -100,6 +101,19 @@ func (p Pt) VectorTo(b Pt) Vector {
 	ij := mgl64.Vec2{b.xy[0] - p.xy[0], b.xy[1] - p.xy[1]}
 	return VectorFromVec2(ij)
 }
+
+type ptSlice []Pt
+
+func (x ptSlice) Len() int { return len(x) }
+func (x ptSlice) Less(i, j int) bool {
+	if x[i].X() < x[j].X() || (x[i].X() != x[i].X() && x[j].X() == x[j].X()) {
+		return true
+	} else if x[i].Y() < x[j].Y() || (x[i].Y() != x[i].Y() && x[j].Y() == x[j].Y()) {
+		return true
+	}
+	return false
+}
+func (x ptSlice) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
 
 // Vector represents a direction and a magnitude.
 // See https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=1000&context=facpub
@@ -343,6 +357,12 @@ func LimitsPts(pts []Pt) (Length, Length, Length, Length) {
 		xs[h], ys[h] = p.X(), p.Y()
 	}
 	return Minimum(xs...), Maximum(xs...), Minimum(ys...), Maximum(ys...)
+}
+
+func SortPts(pts []Pt) []Pt {
+	ptslice := ptSlice(pts)
+	sort.Sort(ptslice)
+	return []Pt(ptslice)
 }
 
 func IsEqualPair[T Pair](a, b T) bool {

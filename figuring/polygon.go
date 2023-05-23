@@ -1,6 +1,8 @@
 package figuring
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type OrderedPtser interface {
 	Points() []Pt
@@ -13,25 +15,46 @@ type Rectangle struct {
 }
 
 func RectanglePt(p1, p2 Pt) Rectangle {
+	var (
+		x, y           Length
+		err            *FloatingPointError
+		brokeX, brokeY bool
+	)
+	if x, err = p1.X().OrErr(); err != nil {
+		brokeX = err.IsNaN()
+	} else if x, err = p2.X().OrErr(); err != nil {
+		brokeX = err.IsNaN()
+	}
+	if y, err = p1.Y().OrErr(); err != nil {
+		brokeY = err.IsNaN()
+	} else if y, err = p2.Y().OrErr(); err != nil {
+		brokeY = err.IsNaN()
+	}
+
 	lx, mx, ly, my := LimitsPts([]Pt{p1, p2})
+
+	// propogate the error value
+	if brokeX {
+		lx, mx = x, x
+	}
+	if brokeY {
+		ly, my = y, y
+	}
+
 	return Rectangle{
 		pts: [2]Pt{PtXy(lx, ly), PtXy(mx, my)},
 	}
 }
-func (r Rectangle) MinPt() Pt    { return r.pts[0] }
-func (r Rectangle) MaxPt() Pt    { return r.pts[1] }
-func (r Rectangle) Points() []Pt { return r.pts[:] }
+
 func (r Rectangle) Dims() (Length, Length) {
 	return r.pts[0].VectorTo(r.pts[1]).Units()
-}
-func (r Rectangle) Width() Length {
-	w, _ := r.Dims()
-	return w
 }
 func (r Rectangle) Height() Length {
 	_, h := r.Dims()
 	return h
 }
+func (r Rectangle) MaxPt() Pt { return r.pts[1] }
+func (r Rectangle) MinPt() Pt { return r.pts[0] }
 func (r Rectangle) OrErr() (Rectangle, *FloatingPointError) {
 	if _, err := r.pts[0].OrErr(); err != nil {
 		return r, err
@@ -40,10 +63,24 @@ func (r Rectangle) OrErr() (Rectangle, *FloatingPointError) {
 	}
 	return r, nil
 }
+func (r Rectangle) Points() []Pt { return r.pts[:] }
+func (r Rectangle) Sides() []Segment {
+	minmax, maxmin := PtXy(r.pts[0].X(), r.pts[1].Y()), PtXy(r.pts[1].X(), r.pts[0].Y())
+	return []Segment{
+		SegmentPt(r.pts[0], minmax),
+		SegmentPt(minmax, r.pts[1]),
+		SegmentPt(r.pts[1], maxmin),
+		SegmentPt(maxmin, r.pts[0]),
+	}
+}
 func (r Rectangle) String() string {
 	minmax, maxmin := PtXy(r.pts[0].X(), r.pts[1].Y()), PtXy(r.pts[1].X(), r.pts[0].Y())
-	return fmt.Sprintf("rect=Polygon(%v, %v, %v, %v)",
+	return fmt.Sprintf("Rectangle[ Polygon(%v, %v, %v, %v) ]",
 		r.pts[0], minmax, r.pts[1], maxmin)
+}
+func (r Rectangle) Width() Length {
+	w, _ := r.Dims()
+	return w
 }
 
 func IntersectionRectangleLine(a Rectangle, b Line) []Pt {
@@ -77,6 +114,31 @@ func IntersectionRectangleLine(a Rectangle, b Line) []Pt {
 	pts := make([]Pt, 0, len(clipped)*2)
 	for h := 0; h < len(clipped); h++ {
 		pts = append(pts, clipped[h].Points()...)
+	}
+	return pts
+}
+
+func IntersectionRectangleSegment(a Rectangle, b Segment) []Pt {
+	min, max := a.MinPt(), a.MaxPt()
+
+	clipped := ClipToRectangleSegment(a, b)
+	if len(clipped) == 0 {
+		return nil
+	}
+	pts := make([]Pt, 0, len(clipped)*2)
+	for h := 0; h < len(clipped); h++ {
+		x, y := clipped[h].Begin().XY()
+		xequal := IsEqual(x, min.X()) || IsEqual(x, max.X())
+		yequal := IsEqual(y, min.Y()) || IsEqual(y, max.Y())
+		if xequal || yequal {
+			pts = append(pts, clipped[h].Begin())
+		}
+		x, y = clipped[h].End().XY()
+		xequal = IsEqual(x, min.X()) || IsEqual(x, max.X())
+		yequal = IsEqual(y, min.Y()) || IsEqual(y, max.Y())
+		if xequal || yequal {
+			pts = append(pts, clipped[h].End())
+		}
 	}
 	return pts
 }
@@ -142,7 +204,18 @@ func TrianglePt(p1, p2, p3 Pt) Triangle {
 		pts: [3]Pt{p1, p2, p3},
 	}
 }
-func (t Triangle) Points() []Pt { return t.pts[:] }
+func (tri Triangle) Points() []Pt { return tri.pts[:] }
+func (tri Triangle) Sides() []Segment {
+	return []Segment{
+		SegmentPt(tri.pts[0], tri.pts[1]),
+		SegmentPt(tri.pts[1], tri.pts[2]),
+		SegmentPt(tri.pts[2], tri.pts[0]),
+	}
+}
+func (tri Triangle) String() string {
+	return fmt.Sprintf("Triangle[ Polygon(%v, %v, %v) ]",
+		tri.pts[0], tri.pts[1], tri.pts[2])
+}
 
 type Quadrilateral struct {
 	pts [4]Pt
@@ -154,7 +227,53 @@ func QuadrilateralPt(p1, p2, p3, p4 Pt) Quadrilateral {
 	}
 }
 func (quad Quadrilateral) Points() []Pt { return quad.pts[:] }
+func (quad Quadrilateral) Sides() []Segment {
+	return PolygonPt(quad.Points()...).Sides()
+}
+func (quad Quadrilateral) String() string {
+	return fmt.Sprintf("Quadrilateral[ Polygon(%v, %v, %v, %v) ]",
+		quad.pts[0], quad.pts[1], quad.pts[2], quad.pts[3])
+}
 
 type Polygon struct {
 	pts []Pt
+}
+
+func PolygonPt(pts ...Pt) Polygon {
+	return Polygon{
+		pts: pts,
+	}
+}
+func (poly Polygon) Points() []Pt { return poly.pts[:] }
+func (poly Polygon) Sides() []Segment {
+	sides := make([]Segment, 0, len(poly.pts))
+	prev := poly.pts[0]
+	for h := 1; h < len(poly.pts); h++ {
+		curr := poly.pts[h]
+		sides = append(sides, SegmentPt(prev, curr))
+		prev = curr
+	}
+	sides = append(sides, SegmentPt(prev, poly.pts[len(poly.pts)-1]))
+	return sides
+}
+
+func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {
+	sides := a.Sides()
+	ptset := make([]Pt, 0, 4)
+	for _, aside := range sides {
+		ptset = append(ptset, IntersectionSegmentSegment(aside, b)...)
+	}
+	if len(ptset) == 0 {
+		return nil
+	}
+
+	ptset = SortPts(ptset)
+	pts := make([]Pt, 1, len(ptset))
+	pts[0] = ptset[0]
+	for h := 1; h < len(ptset); h++ {
+		if !IsEqualPair(pts[len(pts)-1], ptset[h]) {
+			pts = append(pts, ptset[h])
+		}
+	}
+	return pts
 }

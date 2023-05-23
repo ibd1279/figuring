@@ -91,6 +91,33 @@ func TestPt(t *testing.T) {
 		}
 	}
 
+	sortTests := []struct {
+		a   []Pt
+		pts []Pt
+	}{
+		{
+			//0
+			[]Pt{PtXy(100, 100), PtXy(0, 0), PtXy(50, 50)},
+			[]Pt{PtXy(0, 0), PtXy(50, 50), PtXy(100, 100)},
+		}, {
+			[]Pt{PtXy(100, 100), PtXy(100, 0), PtXy(100, 50)},
+			[]Pt{PtXy(100, 0), PtXy(100, 50), PtXy(100, 100)},
+		},
+	}
+	for h, test := range sortTests {
+		a := test.a
+		pts := SortPts(a)
+		if len(pts) != len(test.pts) {
+			t.Fatalf("[%d]SortPts(%v) (length) failed. %v != %v",
+				h, a, pts, test.pts)
+		}
+		for i := 0; i < len(pts); i++ {
+			if !IsEqualPair(pts[i], test.pts[i]) {
+				t.Errorf("[%d][%d]SortPts(%v) failed. %v != %v",
+					h, i, a, pts[i], test.pts[i])
+			}
+		}
+	}
 }
 
 func TestVector(t *testing.T) {

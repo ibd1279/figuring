@@ -192,9 +192,7 @@ func TestLineIntersection(t *testing.T) {
 					h, i, a, b, pts[i], test.pts[i])
 			}
 		}
-
 	}
-
 }
 
 func TestSegment(t *testing.T) {
