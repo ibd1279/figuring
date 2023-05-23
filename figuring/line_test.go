@@ -140,6 +140,63 @@ func TestLine(t *testing.T) {
 	}
 }
 
+func TestLineIntersection(t *testing.T) {
+	lineLineTests := []struct {
+		a, b Line
+		pts  []Pt
+	}{
+		{
+			//0
+			LineAbc(0, 2, 5), LineAbc(0.5, 100, -10),
+			[]Pt{PtXy(-520, 2.5)},
+		}, {
+			LineAbc(2, 0, 5), LineAbc(100, 0.5, -10),
+			[]Pt{PtXy(2.5, -520)},
+		}, {
+			LineAbc(0.5, 100, -10), LineAbc(0, 2, 5),
+			[]Pt{PtXy(-520, 2.5)},
+		}, {
+			LineAbc(100, 0.5, -10), LineAbc(2, 0, 5),
+			[]Pt{PtXy(2.5, -520)},
+		}, {
+			LineAbc(0, 0, 120), LineAbc(9, 10, 1000),
+			nil,
+		}, {
+			//5
+			LineAbc(9, 10, 1000), LineAbc(0, 0, 120),
+			nil,
+		}, {
+			LineAbc(-10, 9, 0), LineAbc(-1, 0.9, 100),
+			nil,
+		}, {
+			LineAbc(1, 2, 0), LineAbc(100, -30, 100),
+			[]Pt{PtXy(0.8695652173913, -0.4347826086957)},
+		}, {
+			LineAbc(-10, 2, 0.123), LineAbc(0.012354343, -1020, 1000),
+			[]Pt{PtXy(-0.2083789361539, -0.9803946807695)},
+		}, {
+			LineAbc(-10, 9, 0), LineAbc(9, 10, 1000),
+			[]Pt{PtXy(49.7237569060774, 55.2486187845304)},
+		},
+	}
+	for h, test := range lineLineTests {
+		a, b := test.a, test.b
+		pts := IntersectionLineLine(a, b)
+		if len(pts) != len(test.pts) {
+			t.Fatalf("[%d]IntersectionLineLine(%v, %v) (length) failed. %v != %v",
+				h, a, b, pts, test.pts)
+		}
+		for i := 0; i < len(pts); i++ {
+			if !IsEqualPair(pts[i], test.pts[i]) {
+				t.Errorf("[%d][%d]IntersectionLineLine(%v, %v) failed. %v != %v",
+					h, i, a, b, pts[i], test.pts[i])
+			}
+		}
+
+	}
+
+}
+
 func TestSegment(t *testing.T) {
 	identityTests := []struct {
 		a          Segment
@@ -239,5 +296,85 @@ func TestSegment(t *testing.T) {
 			t.Errorf("[%d](%v).OrErr() failed. %t != %t. %v",
 				h, test.a, (err != nil), test.isErr, err)
 		}
+	}
+}
+
+func TestSegmentIntersection(t *testing.T) {
+	segmentSegmentTests := []struct {
+		a, b Segment
+		pts  []Pt
+	}{
+		{
+			//0
+			SegmentPt(PtXy(0, 0), PtXy(51, 51)), SegmentPt(PtXy(100, 0), PtXy(49, 51)),
+			[]Pt{PtXy(50, 50)},
+		},
+		{
+			SegmentPt(PtXy(-10, 0), PtXy(100, 40)), SegmentPt(PtXy(100, 0), PtXy(49, 51)),
+			[]Pt{PtXy(70.+2./3., 29.+1./3.)},
+		},
+		{
+			SegmentPt(PtXy(-10, -100), PtXy(102, 1)), SegmentPt(PtXy(100, 0), PtXy(49, 51)),
+			nil,
+		},
+		{
+			SegmentPt(PtXy(-10, 100), PtXy(102, 100)), SegmentPt(PtXy(90, 100), PtXy(10, 100)),
+			nil,
+		},
+		{
+			SegmentPt(PtXy(-10, 10), PtXy(10, -10)), SegmentPt(PtXy(-15, 15), PtXy(15, -15)),
+			nil,
+		},
+	}
+	for h, test := range segmentSegmentTests {
+		a, b := test.a, test.b
+		pts := IntersectionSegmentSegment(a, b)
+		if len(pts) != len(test.pts) {
+			t.Fatalf("[%d]IntersectionSegmentSegment(%v, %v) (length) failed. %v != %v",
+				h, a, b, pts, test.pts)
+		}
+		for i := 0; i < len(pts); i++ {
+			if !IsEqualPair(pts[i], test.pts[i]) {
+				t.Errorf("[%d][%d]IntersectionSegmentSegment(%v, %v) failed. %v != %v",
+					h, i, a, b, pts[i], test.pts[i])
+			}
+		}
+
+	}
+
+	segmentLineTests := []struct {
+		a   Segment
+		b   Line
+		pts []Pt
+	}{
+		{
+			//0
+			SegmentPt(PtXy(40, 60), PtXy(60, 40)),
+			LineAbc(-10, 9, 0),
+			[]Pt{PtXy(47.3684210526316, 52.6315789473684)},
+		}, {
+			SegmentPt(PtXy(20, 30), PtXy(40, 40)),
+			LineAbc(-10, 9, 0),
+			[]Pt{PtXy(32.7272727272727, 36.3636363636364)},
+		}, {
+			SegmentPt(PtXy(20, 60), PtXy(65, 80)),
+			LineAbc(-10, 9, 0),
+			nil,
+		},
+	}
+	for h, test := range segmentLineTests {
+		a, b := test.a, test.b
+		pts := IntersectionSegmentLine(a, b)
+		if len(pts) != len(test.pts) {
+			t.Fatalf("[%d]IntersectionSegmentLine(%v, %v) (length) failed. %v != %v",
+				h, a, b, pts, test.pts)
+		}
+		for i := 0; i < len(pts); i++ {
+			if !IsEqualPair(pts[i], test.pts[i]) {
+				t.Errorf("[%d][%d]IntersectionSegmentLine(%v, %v) failed. %v != %v",
+					h, i, a, b, pts[i], test.pts[i])
+			}
+		}
+
 	}
 }

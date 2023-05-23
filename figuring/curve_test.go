@@ -179,6 +179,78 @@ func TestParamCurve(t *testing.T) {
 				h, a, tt, test.t67)
 		}
 	}
+
+	// Roots
+	rootsTests := []struct {
+		p1, p2, p3, p4 Pt
+		xroots, yroots []float64
+	}{
+		{
+			//0
+			PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10),
+			[]float64{0.3706095719294, 0},
+			[]float64{1, 0},
+		}, {
+			//1
+			PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100),
+			[]float64{0},
+			[]float64{1, 0},
+		}, {
+			//2
+			PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1),
+			[]float64{0.5094282273212036, 0},
+			[]float64{1, 0},
+		}, {
+			//3
+			PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150),
+			[]float64{0},
+			[]float64{1, 0},
+		}, {
+			//4
+			PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30),
+			[]float64{0.5846511999394, 0},
+			[]float64{1, 0.2198586446693, 0},
+		}, {
+			//5
+			PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80),
+			[]float64{0},
+			[]float64{1, 0.0840609753683, 0},
+		}, {
+			//6
+			PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32),
+			[]float64{0},
+			[]float64{1, 0},
+		},
+	}
+	for h, test := range rootsTests {
+		line := LineFromPt(test.p1, test.p4)
+		pts := []Pt{test.p1, test.p2, test.p3, test.p4}
+		pts = RotateOrTranslateToXAxis(line, pts)
+		pts = TranslatePts(pts[0].VectorTo(PtOrig), pts)
+		a := ParamCubic(pts[0], pts[1], pts[2], pts[3])
+		xroots, yroots := a.Roots()
+		if len(xroots) != len(test.xroots) {
+			t.Fatalf("[%d](%s).Roots() (X) (length) failed. %v != %v",
+				h, a.X, xroots, test.xroots)
+		}
+		for i := 0; i < len(xroots); i++ {
+			if !IsEqual(xroots[i], test.xroots[i]) {
+				t.Errorf("[%d][%d](%s).Roots() (X) failed. %v != %v",
+					h, i, a.X, xroots[i], test.xroots[i])
+			}
+		}
+
+		if len(yroots) != len(test.yroots) {
+			t.Fatalf("[%d](%s).Roots() (Y) (length) failed. %v != %v",
+				h, a.Y, yroots, test.yroots)
+		}
+		for i := 0; i < len(yroots); i++ {
+			if !IsEqual(yroots[i], test.yroots[i]) {
+				t.Errorf("[%d][%d](%s).Roots() (Y) failed. %v != %v",
+					h, i, a.Y, yroots[i], test.yroots[i])
+			}
+		}
+	}
 }
 
 func TestBezier(t *testing.T) {
@@ -459,52 +531,54 @@ func TestBezier(t *testing.T) {
 		p1, p2, p3, p4 Pt
 		trans          Vector
 		theta          Radians
+		scale          Length
 		ax             Bezier
 	}{
 		{
 			PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10),
-			VectorIj(-10, -10), -5.764037121173873,
-			BezierPt(PtXy(0, 0), PtXy(-14.884168151, 26.047294264),
-				PtXy(17.364862842, 50.234067509), PtXy(40.311288741, 0)),
+			VectorIj(-10, -10), -5.764037121173873, 40.311288741,
+			BezierPt(PtXy(0, 0), PtXy(-0.369230769, 0.646153846),
+				PtXy(0.430769231, 1.246153846), PtXy(1, 0)),
 		}, {
 			PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100),
-			VectorIj(10, 10), -1.938498874567 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(29.228433416, 423.492265195),
-				PtXy(412.184915041, 549.366540492), PtXy(468.72166581, 0)),
+			VectorIj(10, 10), -1.938498874567 * math.Pi, 468.72166581,
+			BezierPt(PtXy(0, 0), PtXy(0.062357761, 0.903504779),
+				PtXy(0.879380974, 1.172052799), PtXy(1, 0)),
 		}, {
 			PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1),
-			VectorIj(0.10, 0.10), -1 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(-1.3, -4.2), PtXy(-0.6, -4.6), PtXy(5.35, 0)),
+			VectorIj(0.10, 0.10), -1 * math.Pi, 5.35,
+			BezierPt(PtXy(0, 0), PtXy(-0.242990654, -0.785046729),
+				PtXy(-0.112149533, -0.859813084), PtXy(1, 0)),
 		}, {
 			PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150),
-			VectorIj(-51, -113), -0.1117757396712 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(32.259883546, 128.760630293),
-				PtXy(127.096503736, 94.018502105), PtXy(107.563934476, 0)),
+			VectorIj(-51, -113), -0.1117757396712 * math.Pi, 107.563934476,
+			BezierPt(PtXy(0, 0), PtXy(0.29991357, 1.197061366),
+				PtXy(1.18159032, 0.874070873), PtXy(1, 0)),
 		}, {
 			PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30),
-			VectorIj(-110, -150), -1.7211420616237 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(-85.144525155, -39.691432779),
-				PtXy(-12.803687993, 140.840567926), PtXy(156.204993518, 0)),
+			VectorIj(-110, -150), -1.7211420616237 * math.Pi, 156.204993518,
+			BezierPt(PtXy(0, 0), PtXy(-0.545081967, -0.254098361),
+				PtXy(-0.081967213, 0.901639344), PtXy(1, 0)),
 		}, {
 			PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80),
-			VectorIj(-396, -34), -0.8961813805266 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(318.370010543, 16.897821948),
-				PtXy(270.23977573, -184.120785392), PtXy(143.568798839, 0)),
+			VectorIj(-396, -34), -0.8961813805266 * math.Pi, 143.568798839,
+			BezierPt(PtXy(0, 0), PtXy(2.217543179, 0.117698428),
+				PtXy(1.882301572, -1.282456821), PtXy(1, 0)),
 		}, {
 			PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32),
-			VectorIj(-285, -39), -1.0140931207676 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(151.996471399, -93.819361979),
-				PtXy(29.793559351, -163.478878823), PtXy(158.154987275, 0)),
+			VectorIj(-285, -39), -1.0140931207676 * math.Pi, 158.154987275,
+			BezierPt(PtXy(0, 0), PtXy(0.961060249, -0.59321153),
+				PtXy(0.188382041, -1.033662496), PtXy(1, 0)),
 		}, {
 			PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80),
-			VectorIj(-70, -250), -1.7353191928108 * math.Pi,
-			BezierPt(PtXy(0, 0), PtXy(207.342316204, -121.38436436),
-				PtXy(80.850462922, -141.379640137), PtXy(230.054341407, 0)),
+			VectorIj(-70, -250), -1.7353191928108 * math.Pi, 230.054341407,
+			BezierPt(PtXy(0, 0), PtXy(0.90127539, -0.527633444),
+				PtXy(0.351440718, -0.61454889), PtXy(1, 0)),
 		},
 	}
 	for h, test := range aligningTests {
 		a := BezierPt(test.p1, test.p2, test.p3, test.p4)
-		trans, theta, aligned := a.AlignOnX()
+		trans, theta, scale, aligned := a.AlignOnX()
 		if !IsEqualPair(trans, test.trans) {
 			t.Errorf("[%d](%s).AlignOnX() (translate) failed. %v != %v",
 				h, a, trans, test.trans)
@@ -513,25 +587,86 @@ func TestBezier(t *testing.T) {
 			t.Errorf("[%d](%s).AlignOnX() (angle) failed. %v != %v",
 				h, a, theta, test.theta)
 		}
+		if !IsEqual(scale, test.scale) {
+			t.Errorf("[%d](%s).AlignOnX() (scale) failed. %v != %v",
+				h, a, scale, test.scale)
+		}
 		if !IsEqualPts(aligned, test.ax) {
 			t.Errorf("[%d](%s).AlignOnX() failed. %v != %v / %+v != %+v",
 				h, a, aligned, test.ax, aligned.Points(), test.ax.Points())
 		}
+	}
 
-		trans, theta, aligned = a.AlignOnY()
-		if !IsEqualPair(trans, test.trans) {
-			t.Errorf("[%d](%s).AlignOnY() (translate) failed. %v != %v",
-				h, a, trans, test.trans)
+	// Roots
+	rootsTests := []struct {
+		p1, p2, p3, p4 Pt
+		xroots, yroots []float64
+	}{
+		{
+			//0
+			PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10),
+			[]float64{0.3706095719294, 0},
+			[]float64{1, 0},
+		}, {
+			//1
+			PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100),
+			[]float64{0},
+			[]float64{1, 0},
+		}, {
+			//2
+			PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1),
+			[]float64{0.5094282273212036, 0},
+			[]float64{1, 0},
+		}, {
+			//3
+			PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150),
+			[]float64{0},
+			[]float64{1, 0},
+		}, {
+			//4
+			PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30),
+			[]float64{0.5846511999394, 0},
+			[]float64{1, 0.2198586446693, 0},
+		}, {
+			//5
+			PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80),
+			[]float64{0},
+			[]float64{1, 0.0840609753683, 0},
+		}, {
+			//6
+			PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32),
+			[]float64{0},
+			[]float64{1, 0},
+		}, {
+			PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80),
+			[]float64{0},
+			[]float64{1, 0},
+		},
+	}
+	for h, test := range rootsTests {
+		a := BezierPt(test.p1, test.p2, test.p3, test.p4)
+		_, _, _, b := a.AlignOnX()
+		xroots, yroots := b.Roots()
+		if len(xroots) != len(test.xroots) {
+			t.Fatalf("[%d](%s).Roots() (X) (length) failed. %v != %v",
+				h, b.x, xroots, test.xroots)
 		}
-		if !IsEqual(theta, test.theta+(math.Pi/2)) {
-			t.Errorf("[%d](%s).AlignOnY() (angle) failed. %v != %v",
-				h, a, theta, test.theta+(math.Pi/2))
+		for i := 0; i < len(xroots); i++ {
+			if !IsEqual(xroots[i], test.xroots[i]) {
+				t.Errorf("[%d][%d](%s).Roots() (X) failed. %v != %v",
+					h, i, b.x, xroots[i], test.xroots[i])
+			}
 		}
-		pts := RotatePts(math.Pi/2, PtOrig, test.ax.Points())
-		ay := BezierPt(pts[0], pts[1], pts[2], pts[3])
-		if !IsEqualPts(aligned, ay) {
-			t.Errorf("[%d](%s).AlignOnY() failed. %v != %v",
-				h, a, aligned, ay)
+
+		if len(yroots) != len(test.yroots) {
+			t.Fatalf("[%d](%s).Roots() (Y) (length) failed. %v != %v",
+				h, b.y, yroots, test.yroots)
+		}
+		for i := 0; i < len(yroots); i++ {
+			if !IsEqual(yroots[i], test.yroots[i]) {
+				t.Errorf("[%d][%d](%s).Roots() (Y) failed. %v != %v",
+					h, i, b.y, yroots[i], test.yroots[i])
+			}
 		}
 	}
 
@@ -666,7 +801,7 @@ func TestBezier(t *testing.T) {
 			t.Errorf("[%d](%s).Length() failed. %f != %f",
 				h, a, length, test.length)
 		}
-		length = a.ApproxLength()
+		length = a.ApproxLength(32)
 		if length.Round() != test.approxLength.Round() {
 			t.Errorf("[%d](%s).ApproxLength() failed. %f != %f",
 				h, a, length, test.approxLength)
@@ -678,4 +813,37 @@ func TestBezier(t *testing.T) {
 
 	// Intersections
 	// TODO depends on intersections decision.
+}
+
+func BenchmarkBezierLength(b *testing.B) {
+	lengthTests := []Bezier{
+		BezierPt(PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10)),
+		BezierPt(PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100)),
+		BezierPt(PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1)),
+		BezierPt(PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150)),
+		BezierPt(PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30)),
+		BezierPt(PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80)),
+		BezierPt(PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32)),
+		BezierPt(PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80)),
+	}
+	max := len(lengthTests)
+	for h := 0; h < b.N; h++ {
+		lengthTests[h%max].Length()
+	}
+}
+func BenchmarkBezierApproxLength(b *testing.B) {
+	lengthTests := []Bezier{
+		BezierPt(PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10)),
+		BezierPt(PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100)),
+		BezierPt(PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1)),
+		BezierPt(PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150)),
+		BezierPt(PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30)),
+		BezierPt(PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80)),
+		BezierPt(PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32)),
+		BezierPt(PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80)),
+	}
+	max := len(lengthTests)
+	for h := 0; h < b.N; h++ {
+		lengthTests[h%max].ApproxLength(16)
+	}
 }
