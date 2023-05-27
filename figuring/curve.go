@@ -121,6 +121,23 @@ func ParamQuartic(p1, p2, p3, p4, p5 Pt) ParamCurve {
 	}
 }
 
+// BoundingBox returns an axis-aligned rectangle that encompasses all the
+// points of the curve.
+func (pc ParamCurve) BoundingBox() Rectangle {
+	ieq, jeq := pc.X.Derivative(), pc.Y.Derivative()
+	roots := []float64{0.0, 1.0}
+	roots = append(roots, ieq.Roots()...)
+	roots = append(roots, jeq.Roots()...)
+	pts := make([]Pt, 0, len(roots))
+	for h := 0; h < len(roots); h++ {
+		if 0 <= roots[h] && roots[h] <= 1.0 {
+			pts = append(pts, pc.PtAtT(roots[h]))
+		}
+	}
+	lx, mx, ly, my := LimitsPts(pts)
+	return RectanglePt(PtXy(lx, ly), PtXy(mx, my))
+}
+
 // PtAtT returns the point for the provided value of \c t.
 func (pc ParamCurve) PtAtT(t float64) Pt {
 	t = Clamp(pc.Min, t, pc.Max)
@@ -246,6 +263,8 @@ func (curve Bezier) ApproxLength(steps int) Length {
 	return sum
 }
 
+func (curve Bezier) Begin() Pt { return curve.pts[0] }
+
 // BoundingBox returns an axis-aligned rectangle that encompasses all the
 // points of the curve.
 func (curve Bezier) BoundingBox() Rectangle {
@@ -317,6 +336,8 @@ func (curve Bezier) CurveType() BezierCurveType {
 	}
 	return BEZIER_CURVE_TYPE_PLAIN
 }
+
+func (curve Bezier) End() Pt { return curve.pts[3] }
 
 // InflectionPts returns the points where the curvature of the curve switches
 // directions.

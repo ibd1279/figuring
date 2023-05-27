@@ -8,6 +8,10 @@ type OrderedPtser interface {
 	Points() []Pt
 }
 
+type BoundingBoxer interface {
+	BoundingBox() Rectangle
+}
+
 // Rectangle represents an axis aligned rectangle. The resulting rectangle will
 // always be aligned with the X and Y axis.
 type Rectangle struct {

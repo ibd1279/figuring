@@ -195,6 +195,137 @@ func TestLineIntersection(t *testing.T) {
 	}
 }
 
+func TestRay(t *testing.T) {
+	identityTests := []struct {
+		a     Ray
+		s     string
+		begin Pt
+		vec   Vector
+		angle Radians
+	}{
+		{
+			RayFromVector(PtOrig, VectorFromTheta(1./2.)),
+			"Ray(Point({0, 0}), Vector(Point({0.877582562, 0.479425539})))",
+			PtOrig,
+			VectorFromTheta(1. / 2.),
+			1. / 2.,
+		},
+	}
+	for h, test := range identityTests {
+		a := test.a
+		if s := a.String(); s != test.s {
+			t.Errorf("[%d](%s).String() failed. %s != %s",
+				h, a, s, test.s)
+		}
+
+		tp, terr := test.begin.OrErr()
+		if p, err := a.Begin().OrErr(); (err == nil) != (terr == nil) {
+			t.Errorf("[%d](%s).Begin() failed (error). %v != %v",
+				h, a, err, terr)
+		} else if terr == nil && !IsEqualPair(p, tp) {
+			t.Errorf("[%d](%s).Begin() failed. %v != %v",
+				h, a, p, tp)
+		}
+
+		tv, terr := test.vec.OrErr()
+		if v, err := a.Vector().OrErr(); (err == nil) != (terr == nil) {
+			t.Errorf("[%d](%s).Vector() failed (error). %v != %v",
+				h, a, err, terr)
+		} else if terr == nil && !IsEqualPair(v, tv) {
+			t.Errorf("[%d](%s).Vector() failed. %v != %v",
+				h, a, v, tv)
+		}
+
+		if _, err := a.OrErr(); err == nil {
+			if angle := a.Angle(); !IsEqual(angle, test.angle) {
+				t.Errorf("[%d](%s).Length() failed. %f != %f",
+					h, a, angle, test.angle)
+			}
+		}
+	}
+}
+
+func TestRayIntersection(t *testing.T) {
+	rayRayTests := []struct {
+		a, b         Ray
+		rrpts, rlpts []Pt
+	}{
+		{
+			//0
+			RayFromVector(PtOrig, VectorFromTheta(1./2.)),
+			RayFromVector(PtOrig, VectorFromTheta(-1./2.)),
+			[]Pt{PtOrig},
+			[]Pt{PtOrig},
+		}, {
+			RayFromVector(PtXy(5, 0), VectorFromTheta(3*math.Pi/4)),
+			RayFromVector(PtOrig, VectorFromTheta(-1./2.)),
+			[]Pt{},
+			[]Pt{},
+		}, {
+			RayFromVector(PtXy(-5, 0), VectorFromTheta(3*math.Pi/4)),
+			RayFromVector(PtOrig, VectorFromTheta(-1./2.)),
+			[]Pt{},
+			[]Pt{PtXy(-11.0205586151371, 6.0205586151371)},
+		},
+	}
+	for h, test := range rayRayTests {
+		a, b := test.a, test.b
+		rrpts := IntersectionRayRay(a, b)
+		if len(rrpts) != len(test.rrpts) {
+			t.Fatalf("[%d]IntersectionRayRay(%v, %v) (length) failed. %v != %v",
+				h, a, b, rrpts, test.rrpts)
+		}
+		for i := 0; i < len(rrpts); i++ {
+			if !IsEqualPair(rrpts[i], test.rrpts[i]) {
+				t.Errorf("[%d][%d]IntersectionRayRay(%v, %v) failed. %v != %v",
+					h, i, a, b, rrpts[i], test.rrpts[i])
+			}
+		}
+
+		rlpts := IntersectionRayLine(a, b.Line())
+		if len(rlpts) != len(test.rlpts) {
+			t.Fatalf("[%d]IntersectionRayLine(%v, %v) (length) failed. %v != %v",
+				h, a, b.Line(), rlpts, test.rlpts)
+		}
+		for i := 0; i < len(rlpts); i++ {
+			if !IsEqualPair(rlpts[i], test.rlpts[i]) {
+				t.Errorf("[%d][%d]IntersectionRayLine(%v, %v) failed. %v != %v",
+					h, i, a, b.Line(), rlpts[i], test.rlpts[i])
+			}
+		}
+	}
+
+	raySegmentTests := []struct {
+		a   Ray
+		b   Segment
+		pts []Pt
+	}{
+		{
+			RayFromVector(PtOrig, VectorFromTheta(1./2.)),
+			SegmentPt(PtXy(5, 0), PtXy(6, 15)),
+			[]Pt{PtXy(5.1889836458308, 2.8347546874622)},
+		}, {
+			RayFromVector(PtXy(5, 0), VectorFromTheta(1./2.)),
+			SegmentPt(PtXy(4, 0), PtXy(6, 15)),
+			[]Pt{},
+		},
+	}
+	for h, test := range raySegmentTests {
+		a, b := test.a, test.b
+		pts := IntersectionRaySegment(a, b)
+		if len(pts) != len(test.pts) {
+			t.Fatalf("[%d]IntersectionRaySegment(%v, %v) (length) failed. %v != %v",
+				h, a, b, pts, test.pts)
+		}
+		for i := 0; i < len(pts); i++ {
+			if !IsEqualPair(pts[i], test.pts[i]) {
+				t.Errorf("[%d][%d]IntersectionRaySegment(%v, %v) failed. %v != %v",
+					h, i, a, b, pts[i], test.pts[i])
+			}
+		}
+	}
+}
+
 func TestSegment(t *testing.T) {
 	identityTests := []struct {
 		a          Segment
@@ -218,6 +349,11 @@ func TestSegment(t *testing.T) {
 			"Segment(Point({5, 5}), Point({NaN, 5}))",
 			PtXy(5, 5), PtXy(Length(math.NaN()), 5),
 			0, 0,
+		}, {
+			SegmentFromVector(PtXy(5, 0), VectorIj(-5, 5)),
+			"Segment(Point({5, 0}), Point({0, 5}))",
+			PtXy(5, 0), PtXy(0, 5),
+			7.0710678118655, 3. * math.Pi / 4.,
 		},
 	}
 	for h, test := range identityTests {

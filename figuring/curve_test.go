@@ -232,6 +232,43 @@ func TestParamCurve(t *testing.T) {
 		}
 	}
 
+	// Bounding Box
+	boxTesting := []struct {
+		a   ParamCurve
+		box Rectangle
+	}{
+		{
+			ParamQuartic(
+				PtXy(-2.42, -8.24), PtXy(-0.14, -2.94),
+				PtXy(5.74, -8.84), PtXy(9.96, 0.4),
+				PtXy(13.78, -5.2)),
+			RectanglePt(PtXy(-2.42, -8.24), PtXy(13.78, -3.409209141)),
+		}, {
+			ParamCubic(
+				PtXy(10, 10), PtXy(10, 40),
+				PtXy(50, 45), PtXy(45, -10)),
+			RectanglePt(PtXy(10, -10), PtXy(45.432526, 32.126252)),
+		}, {
+			ParamCubic(
+				PtXy(-10, -10), PtXy(100, 400),
+				PtXy(500, 450), PtXy(450, -100)),
+			RectanglePt(PtXy(-10, -100), PtXy(454.303137, 305.156522)),
+		}, {
+			ParamQuadratic(
+				PtXy(-0.10, -0.10), PtXy(0.5, 4.50),
+				PtXy(-5.45, -0.1)),
+			RectanglePt(PtXy(-5.45, -0.1), PtXy(-0.045038168, 2.2)),
+		},
+	}
+	for h, test := range boxTesting {
+		a := test.a
+		box := a.BoundingBox()
+		if !IsEqualPts(box, test.box) {
+			t.Errorf("[%d](%s).BoundingBox() failed. %v != %v",
+				h, a, box, test.box)
+		}
+	}
+
 	// Roots
 	rootsTests := []struct {
 		p1, p2, p3, p4 Pt
@@ -357,6 +394,10 @@ func TestBezier(t *testing.T) {
 			t.Errorf("[%d](%s).PtAtT(0) failed. %v != %v",
 				h, a, p, test.p1)
 		}
+		if p := a.Begin(); !IsEqualPair(p, test.p1) {
+			t.Errorf("[%d](%s).Begin() failed. %v != %v",
+				h, a, p, test.p1)
+		}
 		if p := a.PtAtT(0.33); !IsEqualPair(p, test.p33) {
 			t.Errorf("[%d](%s).PtAtT(0.33) failed. %v != %v",
 				h, a, p, test.p33)
@@ -371,6 +412,10 @@ func TestBezier(t *testing.T) {
 		}
 		if p := a.PtAtT(1); !IsEqualPair(p, test.p4) {
 			t.Errorf("[%d](%s).PtAtT(1) failed. %v != %v",
+				h, a, p, test.p3)
+		}
+		if p := a.End(); !IsEqualPair(p, test.p4) {
+			t.Errorf("[%d](%s).End() failed. %v != %v",
 				h, a, p, test.p3)
 		}
 	}

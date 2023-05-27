@@ -301,12 +301,83 @@ func IntersectionLineBezier(a Line, b Bezier) []Pt {
 	return roots
 }
 
+// Ray represents a geometric ray, with a specific starting point and a directional vector.
+type Ray struct {
+	b Pt
+	v Vector
+}
+
+func RayFromVector(begin Pt, direction Vector) Ray {
+	return Ray{
+		b: begin,
+		v: direction.Normalize(),
+	}
+}
+
+func (r Ray) Angle() Radians { return r.v.Angle() }
+func (r Ray) Begin() Pt      { return r.b }
+func (r Ray) OrErr() (Ray, *FloatingPointError) {
+	if _, err := r.b.OrErr(); err != nil {
+		return r, err
+	} else if _, err = r.v.OrErr(); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+func (r Ray) Invert() Ray    { return RayFromVector(r.b, r.v.Invert()) }
+func (r Ray) Line() Line     { return LineFromVector(r.b, r.v) }
+func (r Ray) String() string { return fmt.Sprintf("Ray(%v, %v)", r.b, r.v) }
+func (r Ray) Vector() Vector { return r.v }
+
+func FilterPtsRay(r Ray, pts []Pt) (ret []Pt) {
+	for _, pp := range pts {
+		if IsEqualPair(pp, r.Begin()) {
+			ret = append(ret, pp)
+		} else {
+			v := r.Begin().VectorTo(pp).Normalize()
+			if IsEqualPair(v, r.Vector()) {
+				ret = append(ret, pp)
+			}
+		}
+	}
+	return ret
+}
+
+func IntersectionRayLine(a Ray, b Line) []Pt {
+	aLine := a.Line()
+	pts := FilterPtsRay(a, IntersectionLineLine(aLine, b))
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return pts
+}
+func IntersectionRayRay(a Ray, b Ray) []Pt {
+	aLine := a.Line()
+	bLine := b.Line()
+	pts := FilterPtsRay(a, FilterPtsRay(b, IntersectionLineLine(aLine, bLine)))
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return pts
+}
+func IntersectionRaySegment(a Ray, b Segment) []Pt {
+	aLine := a.Line()
+	pts := FilterPtsRay(a, IntersectionSegmentLine(b, aLine))
+	if len(pts) == 0 {
+		return nil
+	}
+
+	return pts
+}
+
 // Segment represents a line with a fixed slope between two points.
 type Segment struct {
 	b, e Pt
 }
 
-// SegmentPt creates a new point using the provided points.
+// SegmentPt creates a new segment using the provided points.
 func SegmentPt(begin, end Pt) Segment {
 	return Segment{
 		b: begin,
@@ -314,11 +385,18 @@ func SegmentPt(begin, end Pt) Segment {
 	}
 }
 
-func (s Segment) Begin() Pt      { return s.b }
-func (s Segment) End() Pt        { return s.e }
-func (s Segment) Length() Length { return s.b.VectorTo(s.e).Magnitude() }
-func (s Segment) Angle() Radians { return s.b.VectorTo(s.e).Angle() }
-func (s Segment) Points() []Pt   { return []Pt{s.b, s.e} }
+// SegmentFromVector creates a new segment using the provided orgiin and a
+// vector to compute the end.
+func SegmentFromVector(begin Pt, end Vector) Segment {
+	return SegmentPt(begin, begin.Add(end))
+}
+
+func (s Segment) Begin() Pt              { return s.b }
+func (s Segment) BoundingBox() Rectangle { return RectanglePt(s.b, s.e) }
+func (s Segment) End() Pt                { return s.e }
+func (s Segment) Length() Length         { return s.b.VectorTo(s.e).Magnitude() }
+func (s Segment) Angle() Radians         { return s.b.VectorTo(s.e).Angle() }
+func (s Segment) Points() []Pt           { return []Pt{s.b, s.e} }
 func (s Segment) OrErr() (Segment, *FloatingPointError) {
 	if _, err := s.b.OrErr(); err != nil {
 		return s, err
