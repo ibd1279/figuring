@@ -99,6 +99,28 @@ func ParamQuadratic(p1, p2, p3 Pt) ParamCurve {
 	}
 }
 
+// ParamQuartic creates a quartic bezier curve based on the fourt provided points
+func ParamQuartic(p1, p2, p3, p4, p5 Pt) ParamCurve {
+	ax := p1.X() - 4*p2.X() + 6*p3.X() - 4*p4.X() + p5.X()
+	bx := -4*p1.X() + 12*p2.X() - 12*p3.X() + 4*p4.X()
+	cx := 6*p1.X() - 12*p2.X() + 6*p3.X()
+	dx := -4*p1.X() + 4*p2.X()
+	ex := p1.X()
+
+	ay := p1.Y() - 4*p2.Y() + 6*p3.Y() - 4*p4.Y() + p5.Y()
+	by := -4*p1.Y() + 12*p2.Y() - 12*p3.Y() + 4*p4.Y()
+	cy := 6*p1.Y() - 12*p2.Y() + 6*p3.Y()
+	dy := -4*p1.Y() + 4*p2.Y()
+	ey := p1.Y()
+
+	return ParamCurve{
+		X:   QuarticAbcde(float64(ax), float64(bx), float64(cx), float64(dx), float64(ex)),
+		Y:   QuarticAbcde(float64(ay), float64(by), float64(cy), float64(dy), float64(ey)),
+		Min: 0.0,
+		Max: 1.0,
+	}
+}
+
 // PtAtT returns the point for the provided value of \c t.
 func (pc ParamCurve) PtAtT(t float64) Pt {
 	t = Clamp(pc.Min, t, pc.Max)

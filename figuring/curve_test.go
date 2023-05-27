@@ -180,6 +180,58 @@ func TestParamCurve(t *testing.T) {
 		}
 	}
 
+	quarticTests := []struct {
+		p1, p2, p3, p4, p5 Pt
+		s                  string
+		p33, p50, p67      Pt
+		t33, t67           Vector
+	}{
+		{
+			PtXy(-2.42, -8.24), PtXy(-0.14, -2.94), PtXy(5.74, -8.84),
+			PtXy(9.96, 0.4), PtXy(13.78, -5.2),
+			"Curve(6.52t^4-21.04t^3+21.6t^2+9.12t-2.42, -56.32t^4+105.36t^3-67.2t^2+21.2t-8.24, t, 0, 1)",
+			PtXy(2.2630475692, -5.4436683872), PtXy(5.3175, -4.79), PtXy(8.3724395692, -3.8628016672),
+			VectorIj(17.43946896, 3.17322464).Normalize(),
+			VectorIj(17.57333104, 5.28442336).Normalize(),
+		},
+	}
+	for h, test := range quarticTests {
+		a := ParamQuartic(test.p1, test.p2, test.p3, test.p4, test.p5)
+		if s := a.String(); s != test.s {
+			t.Errorf("[%d](%s).String() failed. %s != %s",
+				h, a, s, test.s)
+		}
+
+		if p := a.PtAtT(0); !IsEqualPair(p, test.p1) {
+			t.Errorf("[%d](%s).PtAtT(0) failed. %v != %v",
+				h, a, p, test.p1)
+		}
+		if p := a.PtAtT(0.33); !IsEqualPair(p, test.p33) {
+			t.Errorf("[%d](%s).PtAtT(0.33) failed. %v != %v",
+				h, a, p, test.p33)
+		}
+		if p := a.PtAtT(0.50); !IsEqualPair(p, test.p50) {
+			t.Errorf("[%d](%s).PtAtT(0.50) failed. %v != %v",
+				h, a, p, test.p50)
+		}
+		if p := a.PtAtT(0.67); !IsEqualPair(p, test.p67) {
+			t.Errorf("[%d](%s).PtAtT(0.67) failed. %v != %v",
+				h, a, p, test.p67)
+		}
+		if p := a.PtAtT(2); !IsEqualPair(p, test.p5) {
+			t.Errorf("[%d](%s).PtAtT(2) failed. %v != %v",
+				h, a, p, test.p5)
+		}
+		if tt, _ := a.TangentAtT(0.33); !IsEqualPair(tt, test.t33) {
+			t.Errorf("[%d](%s).TangentAtT(0.33) failed. %v != %v",
+				h, a, tt, test.t33)
+		}
+		if tt, _ := a.TangentAtT(0.67); !IsEqualPair(tt, test.t67) {
+			t.Errorf("[%d](%s).TangentAtT(0.67) failed. %v != %v",
+				h, a, tt, test.t67)
+		}
+	}
+
 	// Roots
 	rootsTests := []struct {
 		p1, p2, p3, p4 Pt
