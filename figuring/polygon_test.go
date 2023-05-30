@@ -18,6 +18,12 @@ func TestRectangle(t *testing.T) {
 			"Rectangle[ Polygon(Point({-2, -2}), Point({-2, 2}), Point({2, 2}), Point({2, -2})) ]",
 			PtXy(-2, -2), PtXy(2, 2),
 			4, 4,
+		}, {
+			//1
+			RectangleAppend(RectanglePt(PtXy(2, -2), PtXy(-2, 2)), RectanglePt(PtXy(-1, -1), PtXy(1, 4))),
+			"Rectangle[ Polygon(Point({-2, -2}), Point({-2, 4}), Point({2, 4}), Point({2, -2})) ]",
+			PtXy(-2, -2), PtXy(2, 4),
+			4, 6,
 		},
 	}
 	for h, test := range identityTests {

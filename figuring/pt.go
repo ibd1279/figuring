@@ -17,6 +17,7 @@ var (
 	VectorUnit Vector = VectorIj(1, 1)
 	VectorNaN  Vector = VectorIj(Length(math.NaN()), Length(math.NaN()))
 	PtOrig     Pt     = PtXy(0, 0)
+	PtNaN      Pt     = PtXy(Length(math.NaN()), Length(math.NaN()))
 )
 
 type Quadrant uint
@@ -71,13 +72,20 @@ func (p Pt) Units() (Length, Length) {
 	return Length(p.xy[0]), Length(p.xy[1])
 }
 
-// OrErr tests if either coordinate is NaN or Inf and returns an error if one is.
+// OrErr tests if either coordinate is NaN or Inf and returns an error if one
+// is. NaN errors are prioritized over Inf errors.
 func (p Pt) OrErr() (Pt, *FloatingPointError) {
 	x, y := p.Units()
-	if _, err := x.OrErr(); err != nil {
-		return p, err
-	} else if _, err = y.OrErr(); err != nil {
-		return p, err
+	_, xerr := x.OrErr()
+	_, yerr := y.OrErr()
+	if xerr != nil && xerr.IsNaN() {
+		return p, xerr
+	} else if yerr != nil && yerr.IsNaN() {
+		return p, yerr
+	} else if xerr != nil {
+		return p, xerr
+	} else if yerr != nil {
+		return p, yerr
 	}
 	return p, nil
 }
@@ -217,16 +225,22 @@ func (v Vector) Units() (Length, Length) {
 	return Length(v.ij[0]), Length(v.ij[1])
 }
 
-// OrErr tests if either Unit is NaN or Inf and returns an error if one is.
+// OrErr tests if either unit is NaN or Inf and returns an error if one is. NaN
+// errors are prioritized over Inf errors.
 func (v Vector) OrErr() (Vector, *FloatingPointError) {
 	i, j := v.Units()
-	if _, err := i.OrErr(); err != nil {
-		return v, err
-	} else if _, err = j.OrErr(); err != nil {
-		return v, err
+	_, ierr := i.OrErr()
+	_, jerr := j.OrErr()
+	if ierr != nil && ierr.IsNaN() {
+		return v, ierr
+	} else if jerr != nil && jerr.IsNaN() {
+		return v, jerr
+	} else if ierr != nil {
+		return v, ierr
+	} else if jerr != nil {
+		return v, jerr
 	}
 	return v, nil
-
 }
 
 // String outputs the units.

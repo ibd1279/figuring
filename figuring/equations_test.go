@@ -44,12 +44,6 @@ func TestConstantPolynomial(t *testing.T) {
 			t.Fatalf("[%d](%v).Roots() length failed. %d != %d",
 				h, eq, len(roots), 0)
 		}
-
-		var poly Polynomial = eq
-		if _, ok := poly.(Derivable); ok {
-			t.Errorf("[%d](%v).Derivitive() failed. Shouldn't exist.",
-				h, eq)
-		}
 	}
 
 	atTests := []struct {

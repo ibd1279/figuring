@@ -20,30 +20,55 @@ type Rectangle struct {
 
 func RectanglePt(p1, p2 Pt) Rectangle {
 	var (
-		x, y           Length
-		err            *FloatingPointError
-		brokeX, brokeY bool
+		err   *FloatingPointError
+		broke bool
 	)
-	if x, err = p1.X().OrErr(); err != nil {
-		brokeX = err.IsNaN()
-	} else if x, err = p2.X().OrErr(); err != nil {
-		brokeX = err.IsNaN()
+	if _, err = p1.OrErr(); err != nil {
+		broke = err.IsNaN()
 	}
-	if y, err = p1.Y().OrErr(); err != nil {
-		brokeY = err.IsNaN()
-	} else if y, err = p2.Y().OrErr(); err != nil {
-		brokeY = err.IsNaN()
+	if _, err = p2.OrErr(); err != nil && !broke {
+		broke = err.IsNaN()
+	}
+
+	if broke {
+		return Rectangle{
+			pts: [2]Pt{PtNaN, PtNaN},
+		}
 	}
 
 	lx, mx, ly, my := LimitsPts([]Pt{p1, p2})
+	return Rectangle{
+		pts: [2]Pt{PtXy(lx, ly), PtXy(mx, my)},
+	}
+}
 
-	// propogate the error value
-	if brokeX {
-		lx, mx = x, x
+func RectangleAppend(r1, r2 Rectangle) Rectangle {
+	var (
+		err            *FloatingPointError
+		broke1, broke2 bool
+	)
+	if _, err = r1.OrErr(); err != nil {
+		broke1 = err.IsNaN()
 	}
-	if brokeY {
-		ly, my = y, y
+	if _, err = r2.OrErr(); err != nil {
+		broke2 = err.IsNaN()
 	}
+	switch {
+	case broke1 && broke2:
+		return Rectangle{
+			pts: [2]Pt{PtNaN, PtNaN},
+		}
+	case broke1:
+		return r2
+	case broke2:
+		return r1
+	}
+
+	var pts [4]Pt
+	copy(pts[:2], r1.pts[:])
+	copy(pts[2:], r2.pts[:])
+
+	lx, mx, ly, my := LimitsPts(pts[:])
 
 	return Rectangle{
 		pts: [2]Pt{PtXy(lx, ly), PtXy(mx, my)},
@@ -60,10 +85,17 @@ func (r Rectangle) Height() Length {
 func (r Rectangle) MaxPt() Pt { return r.pts[1] }
 func (r Rectangle) MinPt() Pt { return r.pts[0] }
 func (r Rectangle) OrErr() (Rectangle, *FloatingPointError) {
-	if _, err := r.pts[0].OrErr(); err != nil {
-		return r, err
-	} else if _, err = r.pts[1].OrErr(); err != nil {
-		return r, err
+	least, most := r.pts[0], r.pts[1]
+	_, lerr := least.OrErr()
+	_, merr := most.OrErr()
+	if lerr != nil && lerr.IsNaN() {
+		return r, lerr
+	} else if merr != nil && merr.IsNaN() {
+		return r, merr
+	} else if lerr != nil {
+		return r, lerr
+	} else if merr != nil {
+		return r, merr
 	}
 	return r, nil
 }
