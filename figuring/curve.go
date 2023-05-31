@@ -62,7 +62,7 @@ func ParamCubic(p1, p2, p3, p4 Pt) ParamCurve {
 	return ParamCurve{
 		X:   CubicFromVec4(xs),
 		Y:   CubicFromVec4(ys),
-		Min: 0,
+		Min: 0.0,
 		Max: 1.0,
 	}
 }
@@ -121,21 +121,66 @@ func ParamQuartic(p1, p2, p3, p4, p5 Pt) ParamCurve {
 	}
 }
 
+// ApproxLength treats the curve as \c steps number of line segments and returns
+// the sum of the length of all the line segments. It isn't as accurate as the
+// \c Length() function, but can be much faster for smaller values of \c steps.
+func (pc ParamCurve) ApproxLength(steps int) Length {
+	size := pc.Max - pc.Min
+	prev := pc.PtAtT(pc.Min)
+	var sum Length
+	for h := 1; h <= steps; h++ {
+		t := pc.Min + (size / float64(steps) * float64(h))
+		curr := pc.PtAtT(t)
+		sum += prev.VectorTo(curr).Magnitude()
+		prev = curr
+	}
+	return sum
+}
+
+// Begin returns the first point of the param curve. The point at the \c Min
+// value of the curve.
+func (pc ParamCurve) Begin() Pt { return pc.PtAtT(pc.Min) }
+
 // BoundingBox returns an axis-aligned rectangle that encompasses all the
 // points of the curve.
 func (pc ParamCurve) BoundingBox() Rectangle {
 	ieq, jeq := pc.X.Derivative(), pc.Y.Derivative()
-	roots := []float64{0.0, 1.0}
+	roots := []float64{pc.Min, pc.Max}
 	roots = append(roots, ieq.Roots()...)
 	roots = append(roots, jeq.Roots()...)
 	pts := make([]Pt, 0, len(roots))
 	for h := 0; h < len(roots); h++ {
-		if 0 <= roots[h] && roots[h] <= 1.0 {
+		if pc.Min <= roots[h] && roots[h] <= pc.Max {
 			pts = append(pts, pc.PtAtT(roots[h]))
 		}
 	}
 	lx, mx, ly, my := LimitsPts(pts)
 	return RectanglePt(PtXy(lx, ly), PtXy(mx, my))
+}
+
+// End returns the last point of the param curve. The point at the \c Max
+// value of the curve.
+func (pc ParamCurve) End() Pt { return pc.PtAtT(pc.Max) }
+
+// Length returns a more accurate approximation of length than ApproxLength.
+func (pc ParamCurve) Length() Length {
+	// see https://pomax.github.io/bezierinfo/legendre-gauss.html
+	z := pc.Max - pc.Min
+	halfz := z / 2
+	adjustedzero := halfz + pc.Min
+	var sum float64
+	for h := 0; h < len(legendregauss_weight); h++ {
+		C := legendregauss_weight[h]
+		T := legendregauss_abscissa[h]
+		t := adjustedzero + halfz*T
+
+		x := pc.X.Derivative().AtT(t)
+		y := pc.Y.Derivative().AtT(t)
+
+		sum += C * math.Sqrt(x*x+y*y)
+	}
+
+	return Length(sum * halfz)
 }
 
 // PtAtT returns the point for the provided value of \c t.
@@ -179,6 +224,60 @@ func (pc ParamCurve) Roots() ([]float64, []float64) {
 	return xroots, yroots
 }
 
+// SplitAtT splits a param curve into two different param curves at \c t. It
+// does this by constraining the value of t.
+func (pc ParamCurve) SplitAtT(t float64) (ParamCurve, ParamCurve) {
+	t = Clamp(pc.Min, t, pc.Max)
+	a, b := pc, pc
+	b.Min, a.Max = t, t
+	return a, b
+}
+
+// SplitAtLength splits a param curve into two different param curves, with the
+// first curve \c length long, and the second curve as the remained. The
+// returned curves are the approximate length, as the function performs a
+// constrainted binary search to find the splitting point.
+func (pc ParamCurve) SplitAtLength(length Length) (ParamCurve, ParamCurve) {
+	const (
+		windowTarget = 0.01
+		windowShrink = 0.75
+	)
+
+	if IsZero(length) || length < 0 {
+		a := pc
+		a.Max = a.Min
+		return a, pc
+	}
+
+	curveLength := pc.Length()
+	if IsEqual(curveLength, length) || curveLength < length {
+		a := pc
+		a.Min = a.Max
+		return pc, a
+	}
+
+	guess := float64(length/curveLength) * (pc.Max - pc.Min)
+	window := 1.0
+
+	var a, b ParamCurve
+	for window > windowTarget {
+		t := pc.Min + guess
+		a, b = pc.SplitAtT(t)
+		alength := a.Length()
+		if IsEqual(alength, length) {
+			return a, b
+		} else if alength > length {
+			delta := float64((alength-length)/curveLength) * window
+			guess -= delta
+		} else {
+			delta := float64((length-alength)/curveLength) * window
+			guess += delta
+		}
+		window = window * windowShrink
+	}
+	return a, b
+}
+
 // String returns a string representation of the ParamCurve. Format allows the
 // curve to be pasted into Geogebra.
 func (pc ParamCurve) String() string {
@@ -198,8 +297,9 @@ func (pc ParamCurve) TangentAtT(t float64) (Vector, Vector) {
 	t = Clamp(pc.Min, t, pc.Max)
 	ieq, jeq := pc.X.Derivative(), pc.Y.Derivative()
 	i, j := ieq.AtT(t), jeq.AtT(t)
-	tangent := VectorIj(Length(i), Length(j)).Normalize()
-	return tangent, tangent.Rotate(0.5 * math.Pi)
+	tangent := VectorIj(Length(i), Length(j))
+	normal := VectorIj(-Length(j), Length(i))
+	return tangent, normal
 }
 
 type BezierCurveType uint
@@ -215,6 +315,12 @@ const (
 )
 
 // Represents a Cubic Bezier Curve.
+//
+// Most of what can be done with a Bezier type can be done with a ParamCurve
+// type using Cubic functions. The Bezier type is slightly faster because it
+// doesn't use an interface for the underlying functions. It also has some
+// functions that wouldn't be as feasible on the more generic ParamCurve type: \c CurveType,
+// \c InflectionPoints, etc.
 type Bezier struct {
 	pts  [4]Pt
 	x, y Cubic

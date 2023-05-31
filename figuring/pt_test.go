@@ -59,9 +59,9 @@ func TestPt(t *testing.T) {
 	}{
 		{PtXy(10, 0), false},
 		{PtXy(0, 0), true},
-		{PtXy(Length(math.Nextafter(floatZERO_TOLERANCE, math.Inf(-1))), 0), true},
-		{PtXy(0, Length(math.Nextafter(floatZERO_TOLERANCE, -1))), true},
-		{PtXy(0, Length(math.Nextafter(floatZERO_TOLERANCE, 1))), false},
+		{PtXy(Length(math.Nextafter(zeroEpsilon, math.Inf(-1))), 0), true},
+		{PtXy(0, Length(math.Nextafter(zeroEpsilon, -1))), true},
+		{PtXy(0, Length(math.Nextafter(zeroEpsilon, 1))), false},
 	}
 	for h, test := range zeroTests {
 		zero := IsZeroPair(test.a)

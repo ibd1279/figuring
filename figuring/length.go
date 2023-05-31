@@ -1,3 +1,8 @@
+/*
+Package figuring is a math and geometry library used for doing 2D vector
+manipulations. It includes functions for Length, Radians, Vectors, Points,
+Lines, Curves, and Polygons.
+*/
 package figuring
 
 import (
@@ -8,94 +13,91 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 )
 
+// These unit of measures values were copied from https://www.npl.co.uk/si-units
 const (
-	// These unit of measures values were copied from https://www.npl.co.uk/si-units
-	UOM_MICROMETER Length = 1                      // Micrometer(µm) unit of measure
-	UOM_MILLIMETER        = 1000                   // Millimeter(mm) unit of measure
-	UOM_CENTIMETER        = 10000                  // Centimeter(cm) unit of measure
-	UOM_DECIMETER         = 100000                 // Decimeter(dm) unit of measure
-	UOM_METER             = 1000000                // Meter (m) unit of measure
-	UOM_DEKAMETER         = 10 * UOM_METER         // Dekameter(dam) unit of measure
-	UOM_HECTOMETER        = 100 * UOM_METER        // Hectometer(hm) unit of measure
-	UOM_KILOMETER         = 1000 * UOM_METER       // Kilometer(km) unit of measure
-	UOM_MEGAMETER         = 1000000 * UOM_METER    // Megameter(Mm) unit of measure
-	UOM_GIGAMETER         = 1000000000 * UOM_METER // Gigameter(Gm) unit of measure
+	Micrometer Length = 1                  // Micrometer (µm) unit of measure
+	Millimeter        = 1000               // Millimeter (mm) unit of measure
+	Centimeter        = 10000              // Centimeter (cm) unit of measure
+	Decimeter         = 100000             // Decimeter (dm) unit of measure
+	Meter             = 1000000            // Meter (m) unit of measure
+	Dekameter         = 10 * Meter         // Dekameter (dam) unit of measure
+	Hectometer        = 100 * Meter        // Hectometer (hm) unit of measure
+	Kilometer         = 1000 * Meter       // Kilometer (km) unit of measure
+	Megameter         = 1000000 * Meter    // Megameter (Mm) unit of measure
+	Gigameter         = 1000000000 * Meter // Gigameter (Gm) unit of measure
+)
 
-	// These unit of measure labels were copied from https://www.npl.co.uk/si-units
-	UOM_MICROMETER_LABEL      string = "µm"
-	UOM_MICROMETER_LABEL_ALT1        = "um"
-	UOM_MICROMETER_LABEL_ALT2        = "micro"
-	UOM_MILLIMETER_LABEL             = "mm"
-	UOM_MILLIMETER_LABEL_ALT1        = "milli"
-	UOM_CENTIMETER_LABEL             = "cm"
-	UOM_CENTIMETER_LABEL_ALT1        = "centi"
-	UOM_DECIMETER_LABEL              = "dm"
-	UOM_DECIMETER_LABEL_ALT1         = "deci"
-	UOM_METER_LABEL                  = "m"
-	UOM_METER_LABEL_ALT1             = "meter"
-	UOM_DEKAMETER_LABEL              = "dam"
-	UOM_DEKAMETER_LABEL_ALT1         = "deka"
-	UOM_HECTOMETER_LABEL             = "hm"
-	UOM_HECTOMETER_LABEL_ALT1        = "hecto"
-	UOM_KILOMETER_LABEL              = "km"
-	UOM_KILOMETER_LABEL_ALT1         = "kilo"
-	UOM_MEGAMETER_LABEL              = "Mm"
-	UOM_MEGAMETER_LABEL_ALT1         = "mega"
-	UOM_GIGAMETER_LABEL              = "Gm"
-	UOM_GIGAMETER_LABEL_ALT1         = "giga"
-
-	UOM_DEFAULT = UOM_MICROMETER
+// These unit of measure labels were copied from https://www.npl.co.uk/si-units
+const (
+	MicrometerLabel     string = "µm"
+	MicrometerLabelAlt1        = "um"
+	MicrometerLabelAlt2        = "micro"
+	MillimeterLabel            = "mm"
+	MillimeterLabelAlt1        = "milli"
+	CentimeterLabel            = "cm"
+	CentimeterLabelAlt1        = "centi"
+	DecimeterLabel             = "dm"
+	DecimeterLabelAlt1         = "deci"
+	MeterLabel                 = "m"
+	MeterLabelAlt1             = "meter"
+	DekameterLabel             = "dam"
+	DekameterLabelAlt1         = "deka"
+	HectometerLabel            = "hm"
+	HectometerLabelAlt1        = "hecto"
+	KilometerLabel             = "km"
+	KilometerLabelAlt1         = "kilo"
+	MegameterLabel             = "Mm"
+	MegameterLabelAlt1         = "mega"
+	GigameterLabel             = "Gm"
+	GigameterLabelAlt1         = "giga"
 )
 
 const (
-	// floatTOLERANCE is used by the equals methods to compare floats.
+	// equalEpsilon is used by the equals methods to compare floats.
 	// differences less than this are considered equal
-	floatTOLERANCE = 1e-5
+	equalEpsilon = 1e-5
 
-	// floatZERO_TOLERANCE is used to check some values against zero.
-	floatZERO_TOLERANCE = 1e-9
-
-	// floatHUMAN_DENOMINATOR is used to decide when to switch up a level
-	// for UOM.
-	lengthHUMAN_DENOMINATOR = 1.9
+	// zeroEpsilon is used to check some values against zero.
+	zeroEpsilon = 1e-9
 )
 
 var (
-	uomParseLabels map[string]Length = map[string]Length{
-		UOM_MICROMETER_LABEL:      UOM_MICROMETER,
-		UOM_MICROMETER_LABEL_ALT1: UOM_MICROMETER,
-		UOM_MICROMETER_LABEL_ALT2: UOM_MICROMETER,
-		UOM_MILLIMETER_LABEL:      UOM_MILLIMETER,
-		UOM_MILLIMETER_LABEL_ALT1: UOM_MILLIMETER,
-		UOM_CENTIMETER_LABEL:      UOM_CENTIMETER,
-		UOM_CENTIMETER_LABEL_ALT1: UOM_CENTIMETER,
-		UOM_DECIMETER_LABEL:       UOM_DECIMETER,
-		UOM_DECIMETER_LABEL_ALT1:  UOM_DECIMETER,
-		UOM_METER_LABEL:           UOM_METER,
-		UOM_METER_LABEL_ALT1:      UOM_METER,
-		UOM_DEKAMETER_LABEL:       UOM_DEKAMETER,
-		UOM_DEKAMETER_LABEL_ALT1:  UOM_DEKAMETER,
-		UOM_HECTOMETER_LABEL:      UOM_HECTOMETER,
-		UOM_HECTOMETER_LABEL_ALT1: UOM_HECTOMETER,
-		UOM_KILOMETER_LABEL:       UOM_KILOMETER,
-		UOM_KILOMETER_LABEL_ALT1:  UOM_KILOMETER,
-		UOM_MEGAMETER_LABEL:       UOM_MEGAMETER,
-		UOM_MEGAMETER_LABEL_ALT1:  UOM_MEGAMETER,
-		UOM_GIGAMETER_LABEL:       UOM_GIGAMETER,
-		UOM_GIGAMETER_LABEL_ALT1:  UOM_GIGAMETER,
+	uomParseLabels = map[string]Length{
+		MicrometerLabel:     Micrometer,
+		MicrometerLabelAlt1: Micrometer,
+		MicrometerLabelAlt2: Micrometer,
+		MillimeterLabel:     Millimeter,
+		MillimeterLabelAlt1: Millimeter,
+		CentimeterLabel:     Centimeter,
+		CentimeterLabelAlt1: Centimeter,
+		DecimeterLabel:      Decimeter,
+		DecimeterLabelAlt1:  Decimeter,
+		MeterLabel:          Meter,
+		MeterLabelAlt1:      Meter,
+		DekameterLabel:      Dekameter,
+		DekameterLabelAlt1:  Dekameter,
+		HectometerLabel:     Hectometer,
+		HectometerLabelAlt1: Hectometer,
+		KilometerLabel:      Kilometer,
+		KilometerLabelAlt1:  Kilometer,
+		MegameterLabel:      Megameter,
+		MegameterLabelAlt1:  Megameter,
+		GigameterLabel:      Gigameter,
+		GigameterLabelAlt1:  Gigameter,
 	}
 )
 
 // Radians is used for angle measurements.
 type Radians float64
 
-// Create a Radian value from a degrees value.
+// RadiansFromDegrees creates a Radian value from a degrees value.
 func RadiansFromDegrees(f float64) Radians { return Radians(f * math.Pi / 180) }
 
-// Create and normalize a Radian value to be betwee 0 <= r < 2*math.Pi
+// RadiansFromFloat creates and normalizes a Radian value to be betwee 0 <= r <
+// 2*math.Pi
 func RadiansFromFloat(f float64) Radians { return Radians(f).Normalize() }
 
-// Create a Degree value from a radian value.
+// Degrees create a degree value from a radian value.
 func (r Radians) Degrees() float64 { return float64(r) * 180 / math.Pi }
 
 // Normalize the radians to between 0 <= r < 2*math.Pi
@@ -126,8 +128,9 @@ func (r Radians) OrErr() (Radians, *FloatingPointError) {
 // and supports around 9 Gm before percision starts to degrade.
 type Length float64
 
-// Parse a string UOM value and return the UOM constant.  Falls back to the \c
-// fallback UOM if the label cannot be matched or the number cannot be parsed.
+// ParseUnitOfMeasure parses a string UOM value and returns the UOM constant.
+// Falls back to the \c fallback UOM if the label cannot be matched or the
+// number cannot be parsed.
 func ParseUnitOfMeasure(s string, fallback Length) Length {
 	if uom, ok := uomParseLabels[s]; ok {
 		return uom
@@ -162,33 +165,37 @@ func (d Length) OrErr() (Length, *FloatingPointError) {
 	return d, nil
 }
 
-// HumanUnitLabel returns the UOM and label that would make the most sense for the value.
+// HumanUnitLabel returns the UOM and label that would make the most sense for
+// the value.
 func (d Length) HumanUnitLabel() (Length, string) {
 	u := d + 1
-	if u > UOM_GIGAMETER {
-		return UOM_GIGAMETER, UOM_GIGAMETER_LABEL
-	} else if u > UOM_MEGAMETER {
-		return UOM_MEGAMETER, UOM_MEGAMETER_LABEL
-	} else if u > UOM_KILOMETER {
-		return UOM_KILOMETER, UOM_KILOMETER_LABEL
-	} else if u > UOM_METER {
-		return UOM_METER, UOM_METER_LABEL
-	} else if u > UOM_MILLIMETER {
-		return UOM_MILLIMETER, UOM_MILLIMETER_LABEL
+	if u > Gigameter {
+		return Gigameter, GigameterLabel
+	} else if u > Megameter {
+		return Megameter, MegameterLabel
+	} else if u > Kilometer {
+		return Kilometer, KilometerLabel
+	} else if u > Meter {
+		return Meter, MeterLabel
+	} else if u > Millimeter {
+		return Millimeter, MillimeterLabel
 	}
-	return UOM_MICROMETER, UOM_MICROMETER_LABEL
+	return Micrometer, MicrometerLabel
 }
 
-// String generates a human readable string for the length. Includes the UOM label.
+// Text generates a human readable string for the length. Includes the UOM
+// label.
 func (d Length) Text(uom Length) string {
 	uom, label := uom.HumanUnitLabel()
 	return fmt.Sprintf("%0.03f%s", d.Float(uom), label)
 }
 
+// FloatingPointError provides an error interfaced wrapper for floats.
 type FloatingPointError struct {
 	v float64
 }
 
+// Error implements the error interface.
 func (e *FloatingPointError) Error() string {
 	if math.IsNaN(e.v) {
 		return "NaN encountered"
@@ -202,9 +209,16 @@ func (e *FloatingPointError) Error() string {
 	return fmt.Sprintf("%g resulted in an error", e.v)
 }
 
-func (e *FloatingPointError) IsNaN() bool    { return math.IsNaN(e.v) }
-func (e *FloatingPointError) IsInf() bool    { return math.IsInf(e.v, 0) }
+// IsNaN tests if the error was because of a NaN value.
+func (e *FloatingPointError) IsNaN() bool { return math.IsNaN(e.v) }
+
+// IsInf tests if the error was because of a Inf value, positive or negative.
+func (e *FloatingPointError) IsInf() bool { return math.IsInf(e.v, 0) }
+
+// IsPosInf tests if the error was because of a positive Inf value.
 func (e *FloatingPointError) IsPosInf() bool { return math.IsInf(e.v, 1) }
+
+// IsNegInf tests if the error was because of a negative Inf value.
 func (e *FloatingPointError) IsNegInf() bool { return math.IsInf(e.v, -1) }
 
 // Minimum returns the smallest value from a set of values. Discards NaN values.
@@ -237,7 +251,7 @@ func Maximum[T Radians | Length | float64](vals ...T) (ret T) {
 	return ret
 }
 
-// ClampRadians clamps value v between min and max.
+// Clamp value v between min and max. Preserves NaN values.
 func Clamp[T Radians | Length | float64](min, v, max T) T {
 	if v < min {
 		v = min
@@ -249,12 +263,12 @@ func Clamp[T Radians | Length | float64](min, v, max T) T {
 
 // IsEqual tests if two values are within a tolerance of each other.
 func IsEqual[T Radians | Length | float64](a, b T) bool {
-	return mgl64.FloatEqualThreshold(float64(a), float64(b), floatTOLERANCE)
+	return mgl64.FloatEqualThreshold(float64(a), float64(b), equalEpsilon)
 }
 
 // IsZero tests if a value is within a tolerance of zero.
 func IsZero[T Radians | Length | float64](a T) bool {
-	if -floatZERO_TOLERANCE < a && a < floatZERO_TOLERANCE {
+	if -zeroEpsilon < a && a < zeroEpsilon {
 		return true
 	}
 	return false
@@ -263,6 +277,8 @@ func IsZero[T Radians | Length | float64](a T) bool {
 // Signbit tests if the (negative) sign bit is set on a value.
 func Signbit[T Radians | Length | float64](a T) bool { return math.Signbit(float64(a)) }
 
+// HumanFormat outputs the floating point value with the desired percision.
+// Trailing zeros are trimmed.
 func HumanFormat[T Radians | Length | float64](percision int, v T) string {
 	fmtstr := fmt.Sprintf("%%.%df", percision)
 	str := fmt.Sprintf(fmtstr, v)

@@ -39,7 +39,7 @@ func ConstantA(a float64) Constant {
 
 func (Constant) Degree() int                { return 0 }
 func (co Constant) Coefficients() []float64 { return []float64{co.a} }
-func (co Constant) AtT(t float64) float64   { return co.a }
+func (co Constant) AtT(float64) float64     { return co.a }
 func (co Constant) Roots() []float64        { return nil }
 func (co Constant) Derivative() Polynomial  { return ConstantA(0) }
 func (co Constant) A() float64              { return co.a }

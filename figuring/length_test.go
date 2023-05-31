@@ -164,7 +164,7 @@ func TestRadians(t *testing.T) {
 
 func TestLength(t *testing.T) {
 	const (
-		FLOAT_TOLERANCE = 0.00000001
+		testFloatEpsilon = 0.00000001
 
 		fivenano  Length = 0.005
 		fivemicro        = 5.
@@ -201,18 +201,18 @@ func TestLength(t *testing.T) {
 		i   int
 		i64 int64
 	}{
-		{fivenano, nanohuman, UOM_METER, 0.000000005, 0.000000005, 0, 0},
-		{fivemicro, microhuman, UOM_METER, 0.000005, 0.000005, 0, 0},
-		{fivemilli, millihuman, UOM_METER, 0.005, 0.005, 0, 0},
-		{fivecenti, centihuman, UOM_METER, 0.05, 0.05, 0, 0},
-		{fivedeci, decihuman, UOM_METER, 0.5, 0.5, 0, 0},
-		{fivemeter, meterhuman, UOM_METER, 5., 5., 5, 5},
-		{fivedeka, dekahuman, UOM_METER, 50., 50., 50, 50},
-		{fivehecto, hectohuman, UOM_METER, 500., 500., 500, 500},
-		{fivekilo, kilohuman, UOM_METER, 5000., 5000., 5000, 5000},
-		{fivemega, megahuman, UOM_METER, 5000000., 5000000., 5000000, 5000000},
-		{fivegiga, gigahuman, UOM_KILOMETER, 5000000., 5000000., 5000000, 5000000},
-		{fivetera, terahuman, UOM_MICROMETER, 5000000000000000000., 5000000000000000000., 5000000000000000000, 5000000000000000000},
+		{fivenano, nanohuman, Meter, 0.000000005, 0.000000005, 0, 0},
+		{fivemicro, microhuman, Meter, 0.000005, 0.000005, 0, 0},
+		{fivemilli, millihuman, Meter, 0.005, 0.005, 0, 0},
+		{fivecenti, centihuman, Meter, 0.05, 0.05, 0, 0},
+		{fivedeci, decihuman, Meter, 0.5, 0.5, 0, 0},
+		{fivemeter, meterhuman, Meter, 5., 5., 5, 5},
+		{fivedeka, dekahuman, Meter, 50., 50., 50, 50},
+		{fivehecto, hectohuman, Meter, 500., 500., 500, 500},
+		{fivekilo, kilohuman, Meter, 5000., 5000., 5000, 5000},
+		{fivemega, megahuman, Meter, 5000000., 5000000., 5000000, 5000000},
+		{fivegiga, gigahuman, Kilometer, 5000000., 5000000., 5000000, 5000000},
+		{fivetera, terahuman, Micrometer, 5000000000000000000., 5000000000000000000., 5000000000000000000, 5000000000000000000},
 	}
 	for h, test := range uomTests {
 		uom, _ := test.v.HumanUnitLabel()
@@ -224,7 +224,7 @@ func TestLength(t *testing.T) {
 			t.Errorf("Length[%d].Float() failed. %g != %g",
 				h, f, test.f)
 		}
-		if f := test.v.Float32(test.uom); math.Abs(float64(f-test.f32)) > floatTOLERANCE {
+		if f := test.v.Float32(test.uom); math.Abs(float64(f-test.f32)) > equalEpsilon {
 			t.Errorf("Length[%d].Float32() failed. %g != %g",
 				h, f, test.f32)
 		}
@@ -243,9 +243,9 @@ func TestLength(t *testing.T) {
 		uom      Length
 		expected Length
 	}{
-		{25, UOM_METER, 25 * UOM_METER},
-		{fivetera, UOM_GIGAMETER, fivetera * UOM_GIGAMETER},
-		{-fivetera, UOM_GIGAMETER, -fivetera * UOM_GIGAMETER},
+		{25, Meter, 25 * Meter},
+		{fivetera, Gigameter, fivetera * Gigameter},
+		{-fivetera, Gigameter, -fivetera * Gigameter},
 	}
 	for h, test := range lengthUomTests {
 		lngth := LengthUom(test.f, test.uom)
@@ -260,13 +260,13 @@ func TestLength(t *testing.T) {
 		d Length
 		v Length
 	}{
-		{"micro", UOM_METER, UOM_MICROMETER},
-		{"µm", UOM_METER, UOM_MICROMETER},
-		{"hecto", UOM_METER, UOM_HECTOMETER},
-		{"nano", UOM_METER, UOM_METER},
-		{"Mm", UOM_METER, UOM_MEGAMETER},
-		{"pm", UOM_METER, UOM_METER},
-		{"m", UOM_MILLIMETER, UOM_METER},
+		{"micro", Meter, Micrometer},
+		{"µm", Meter, Micrometer},
+		{"hecto", Meter, Hectometer},
+		{"nano", Meter, Meter},
+		{"Mm", Meter, Megameter},
+		{"pm", Meter, Meter},
+		{"m", Millimeter, Meter},
 	}
 	for h, test := range parseUomTests {
 		if uom := ParseUnitOfMeasure(test.s, test.d); uom != test.v {
@@ -327,7 +327,7 @@ func TestLength(t *testing.T) {
 
 		if v, err := test.v.OrErr(); err == nil {
 			// Test the things that only work on real numbers.
-			if r := v.Round(); math.Abs(float64(r-test.r)) > floatTOLERANCE {
+			if r := v.Round(); math.Abs(float64(r-test.r)) > equalEpsilon {
 				t.Errorf("Length[%d].Round() failed. %g != %g", h, r, test.r)
 			}
 

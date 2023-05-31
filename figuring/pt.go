@@ -8,18 +8,30 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 )
 
+// Pair is the interface that of all types that allow retreiving the underlying
+// units as a pair.
 type Pair interface {
 	Units() (Length, Length)
 }
 
 var (
-	VectorZero Vector = VectorIj(0, 0)
-	VectorUnit Vector = VectorIj(1, 1)
-	VectorNaN  Vector = VectorIj(Length(math.NaN()), Length(math.NaN()))
-	PtOrig     Pt     = PtXy(0, 0)
-	PtNaN      Pt     = PtXy(Length(math.NaN()), Length(math.NaN()))
+	// VectorZero is a Vector of zero magnitude.
+	VectorZero = VectorIj(0, 0)
+
+	// VectorUnit is a Vector of 1 unit length (1 micrometer).
+	VectorUnit = VectorIj(1, 1)
+
+	// VectorNaN is a Vector in error.
+	VectorNaN = VectorIj(Length(math.NaN()), Length(math.NaN()))
+
+	// PtOrig is the Origin Point.
+	PtOrig = PtXy(0, 0)
+
+	// PtNaN is a Pt in error.
+	PtNaN = PtXy(Length(math.NaN()), Length(math.NaN()))
 )
 
+// Quadrant represents which direction a vector points towards.
 type Quadrant uint
 
 const (
@@ -316,6 +328,7 @@ func (v Vector) Dot(n Vector) Length {
 	return Length(v.ij[0]*n.ij[0] + v.ij[1]*n.ij[1])
 }
 
+// RotatePts rotates \c pts by \c theta around \c origin.
 func RotatePts(theta Radians, origin Pt, pts []Pt) []Pt {
 	ret := make([]Pt, len(pts))
 	for h, p := range pts {
@@ -326,6 +339,7 @@ func RotatePts(theta Radians, origin Pt, pts []Pt) []Pt {
 	return ret
 }
 
+// TranslatePts translates \c pts by \c v.
 func TranslatePts(v Vector, pts []Pt) []Pt {
 	tm := mgl64.Mat3{
 		1, 0, 0,
@@ -340,6 +354,7 @@ func TranslatePts(v Vector, pts []Pt) []Pt {
 	return ret
 }
 
+// ShearPts performs a shear rotation on \c pts by \c v.
 func ShearPts(v Vector, pts []Pt) []Pt {
 	tm := mgl64.Mat2{
 		1, v.ij[1],
@@ -353,6 +368,7 @@ func ShearPts(v Vector, pts []Pt) []Pt {
 	return ret
 }
 
+// ScalePts scales the coordinates of \c pts by \c v.
 func ScalePts(v Vector, pts []Pt) []Pt {
 	tm := mgl64.Diag2(v.ij)
 	ret := make([]Pt, len(pts))
@@ -373,12 +389,15 @@ func LimitsPts(pts []Pt) (Length, Length, Length, Length) {
 	return Minimum(xs...), Maximum(xs...), Minimum(ys...), Maximum(ys...)
 }
 
+// SortPts sorts \c pts.
 func SortPts(pts []Pt) []Pt {
 	ptslice := ptSlice(pts)
 	sort.Sort(ptslice)
 	return []Pt(ptslice)
 }
 
+// IsEqualPair takes two objects that implement the pair interface and compares
+// that they are equal.
 func IsEqualPair[T Pair](a, b T) bool {
 	ax, ay := a.Units()
 	bx, by := b.Units()
@@ -388,6 +407,7 @@ func IsEqualPair[T Pair](a, b T) bool {
 	return false
 }
 
+// IsZeropair checks if both units of a Pair are really close to zero.
 func IsZeroPair[T Pair](a T) bool {
 	ax, ay := a.Units()
 	if IsZero(ax) && IsZero(ay) {

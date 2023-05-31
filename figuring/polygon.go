@@ -2,12 +2,18 @@ package figuring
 
 import (
 	"fmt"
+	"math"
+	"strings"
 )
 
+// OrderedPtser is an interface for all the types that provide a Points()
+// interface.
 type OrderedPtser interface {
 	Points() []Pt
 }
 
+// BoundingBoxer is the interface set of all types that provide a BoundingBox()
+// interface.
 type BoundingBoxer interface {
 	BoundingBox() Rectangle
 }
@@ -18,6 +24,7 @@ type Rectangle struct {
 	pts [2]Pt
 }
 
+// Create a rectangle based on points.
 func RectanglePt(p1, p2 Pt) Rectangle {
 	var (
 		err   *FloatingPointError
@@ -229,47 +236,19 @@ func ClipToRectangleSegment(a Rectangle, b Segment) []Segment {
 	}
 }
 
-// Triangle represents a three sided polygon. This is independent from the
-// polygon to support angluar math on it.
-type Triangle struct {
-	pts [3]Pt
-}
+// Unit objects, including triangles and rectangles.
+var (
+	Half          = Length(0.5)
+	HalfSqrtTwo   = Length(math.Sqrt(2.) / 2.)
+	HalfSqrtThree = Length(math.Sqrt(3.) / 2.)
 
-func TrianglePt(p1, p2, p3 Pt) Triangle {
-	return Triangle{
-		pts: [3]Pt{p1, p2, p3},
-	}
-}
-func (tri Triangle) Points() []Pt { return tri.pts[:] }
-func (tri Triangle) Sides() []Segment {
-	return []Segment{
-		SegmentPt(tri.pts[0], tri.pts[1]),
-		SegmentPt(tri.pts[1], tri.pts[2]),
-		SegmentPt(tri.pts[2], tri.pts[0]),
-	}
-}
-func (tri Triangle) String() string {
-	return fmt.Sprintf("Triangle[ Polygon(%v, %v, %v) ]",
-		tri.pts[0], tri.pts[1], tri.pts[2])
-}
+	TriangleThirtySixtyNinety = PolygonPt(PtOrig, PtXy(HalfSqrtThree, 0), PtXy(HalfSqrtThree, Half))
+	TriangleIsoscelesRight    = PolygonPt(PtOrig, PtXy(HalfSqrtTwo, 0), PtXy(HalfSqrtTwo, HalfSqrtTwo))
+	TriangleSixtyNinetyThirty = PolygonPt(PtOrig, PtXy(Half, 0), PtXy(Half, HalfSqrtThree))
+	TriangleEquilateral       = PolygonPt(PtOrig, PtXy(HalfSqrtThree, -Half), PtXy(HalfSqrtThree, Half))
 
-type Quadrilateral struct {
-	pts [4]Pt
-}
-
-func QuadrilateralPt(p1, p2, p3, p4 Pt) Quadrilateral {
-	return Quadrilateral{
-		pts: [4]Pt{p1, p2, p3, p4},
-	}
-}
-func (quad Quadrilateral) Points() []Pt { return quad.pts[:] }
-func (quad Quadrilateral) Sides() []Segment {
-	return PolygonPt(quad.Points()...).Sides()
-}
-func (quad Quadrilateral) String() string {
-	return fmt.Sprintf("Quadrilateral[ Polygon(%v, %v, %v, %v) ]",
-		quad.pts[0], quad.pts[1], quad.pts[2], quad.pts[3])
-}
+	Square = PolygonPt(PtOrig, PtXy(1, 0), PtXy(1, 1), PtXy(0, 1))
+)
 
 type Polygon struct {
 	pts []Pt
@@ -280,7 +259,24 @@ func PolygonPt(pts ...Pt) Polygon {
 		pts: pts,
 	}
 }
+func (poly Polygon) Angles() []Radians { return []Radians{} }
+func (poly Polygon) Perimeter() Length {
+	var sum Length
+	for _, side := range poly.Sides() {
+		sum += side.Length()
+	}
+	return sum
+}
 func (poly Polygon) Points() []Pt { return poly.pts[:] }
+func (poly Polygon) OrErr() (Polygon, *FloatingPointError) {
+	return poly, nil
+}
+func (poly Polygon) Rotate(theta Radians, origin Pt) Polygon {
+	return PolygonPt(RotatePts(theta, origin, poly.pts[:])...)
+}
+func (poly Polygon) Scale(scalars Vector) Polygon {
+	return PolygonPt(ScalePts(scalars, poly.pts[:])...)
+}
 func (poly Polygon) Sides() []Segment {
 	sides := make([]Segment, 0, len(poly.pts))
 	prev := poly.pts[0]
@@ -289,8 +285,19 @@ func (poly Polygon) Sides() []Segment {
 		sides = append(sides, SegmentPt(prev, curr))
 		prev = curr
 	}
-	sides = append(sides, SegmentPt(prev, poly.pts[len(poly.pts)-1]))
+	sides = append(sides, SegmentPt(prev, poly.pts[0]))
 	return sides
+}
+func (poly Polygon) String() string {
+	var slice []string
+	for _, p := range poly.pts {
+		slice = append(slice, fmt.Sprintf("%v", p))
+	}
+	return fmt.Sprintf("Polygon(%s)",
+		strings.Join(slice, ", "))
+}
+func (poly Polygon) Translate(direction Vector) Polygon {
+	return PolygonPt(TranslatePts(direction, poly.pts[:])...)
 }
 
 func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {

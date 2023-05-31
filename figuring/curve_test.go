@@ -55,12 +55,12 @@ func TestParamCurve(t *testing.T) {
 			PtXy(70, 250), PtXy(20, 110), PtXy(220, 60),
 			"Curve(250t^2-100t+70, 90t^2-280t+250, t, 0, 1)",
 			PtXy(64.225, 167.401), PtXy(82.5, 132.5), PtXy(115.225, 102.801),
-			VectorIj(65, -220.6).Normalize(), VectorIj(235, -159.4).Normalize(),
+			VectorIj(65, -220.6), VectorIj(235, -159.4),
 		}, {
 			PtXy(95, 235), PtXy(46, 25), PtXy(217, 217),
 			"Curve(220t^2-98t+95, 402t^2-420t+235, t, 0, 1)",
 			PtXy(86.618, 140.1778), PtXy(101, 125.5), PtXy(128.098, 134.0578),
-			VectorIj(47.2, -154.68).Normalize(), VectorIj(196.8, 118.68).Normalize(),
+			VectorIj(47.2, -154.68), VectorIj(196.8, 118.68),
 		},
 	}
 	for h, test := range quadraticTests {
@@ -110,37 +110,37 @@ func TestParamCurve(t *testing.T) {
 			PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10),
 			"Curve(-85t^3+120t^2+0t+10, -35t^3-75t^2+90t+10, t, 0, 1)",
 			PtXy(20.013355, 30.274705), PtXy(29.375, 31.875), PtXy(38.303145, 26.105795),
-			VectorIj(51.4305, 29.0655).Normalize(), VectorIj(46.3305, -57.6345).Normalize(),
+			VectorIj(51.4305, 29.0655), VectorIj(46.3305, -57.6345),
 		}, {
 			PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100),
 			"Curve(-740t^3+870t^2+330t-10, -240t^3-1080t^2+1230t-10, t, 0, 1)",
 			PtXy(167.04962, 269.66312), PtXy(280, 305), PtXy(379.07838, 257.10488),
-			VectorIj(662.442, 438.792).Normalize(), VectorIj(499.242, -540.408).Normalize(),
+			VectorIj(662.442, 438.792), VectorIj(499.242, -540.408),
 		}, {
 			PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1),
 			"Curve(-3.25t^3-6t^2+3.9t-0.1, -1.2t^3-11.4t^2+12.6t-0.1, t, 0, 1)",
 			PtXy(0.41680475, 2.7734156), PtXy(-0.05625, 3.2), PtXy(-1.15787975, 2.8636244),
-			VectorIj(-1.121775, 4.68396).Normalize(), VectorIj(-8.516775, -4.29204).Normalize(),
+			VectorIj(-1.121775, 4.68396), VectorIj(-8.516775, -4.29204),
 		}, {
 			PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150),
 			"Curve(-202t^3+345t^2-42t+51, 37t^3-396t^2+396t+113, t, 0, 1)",
 			PtXy(67.451226, 201.885269), PtXy(91, 216.625), PtXy(116.976374, 211.683831),
-			VectorIj(119.7066, 146.7279).Normalize(), VectorIj(148.2666, -84.8121).Normalize(),
+			VectorIj(119.7066, 146.7279), VectorIj(148.2666, -84.8121),
 		}, {
 			PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30),
 			"Curve(-455t^3+810t^2-255t+110, -300t^3+60t^2+120t+150, t, 0, 1)",
 			PtXy(97.707665, 185.3529), PtXy(128.125, 187.5), PtXy(165.911835, 167.1051),
-			VectorIj(130.9515, 61.59).Normalize(), VectorIj(217.6515, -203.61).Normalize(),
+			VectorIj(130.9515, 61.59), VectorIj(217.6515, -203.61),
 		}, {
 			PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80),
 			"Curve(-466t^3+1251t^2-921t+396, -479t^3+267t^2+258t+34, t, 0, 1)",
 			PtXy(211.557258, 131.002477), PtXy(190, 169.875), PtXy(200.348342, 182.650823),
-			VectorIj(-247.5822, 277.7327).Normalize(), VectorIj(127.7778, -29.2893).Normalize(),
+			VectorIj(-247.5822, 277.7327), VectorIj(127.7778, -29.2893),
 		}, {
 			PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32),
 			"Curve(-515t^3+825t^2-468t+285, -232t^3-36t^2+261t+39, t, 0, 1)",
 			PtXy(201.894945, 112.872216), PtXy(192.875, 131.5), PtXy(186.889555, 127.932584),
-			VectorIj(-91.7505, 161.4456).Normalize(), VectorIj(-56.0505, -99.6744).Normalize(),
+			VectorIj(-91.7505, 161.4456), VectorIj(-56.0505, -99.6744),
 		},
 	}
 	for h, test := range cubicTests {
@@ -191,8 +191,8 @@ func TestParamCurve(t *testing.T) {
 			PtXy(9.96, 0.4), PtXy(13.78, -5.2),
 			"Curve(6.52t^4-21.04t^3+21.6t^2+9.12t-2.42, -56.32t^4+105.36t^3-67.2t^2+21.2t-8.24, t, 0, 1)",
 			PtXy(2.2630475692, -5.4436683872), PtXy(5.3175, -4.79), PtXy(8.3724395692, -3.8628016672),
-			VectorIj(17.43946896, 3.17322464).Normalize(),
-			VectorIj(17.57333104, 5.28442336).Normalize(),
+			VectorIj(17.43946896, 3.17322464),
+			VectorIj(17.57333104, 5.28442336),
 		},
 	}
 	for h, test := range quarticTests {
@@ -229,6 +229,52 @@ func TestParamCurve(t *testing.T) {
 		if tt, _ := a.TangentAtT(0.67); !IsEqualPair(tt, test.t67) {
 			t.Errorf("[%d](%s).TangentAtT(0.67) failed. %v != %v",
 				h, a, tt, test.t67)
+		}
+	}
+
+	lengthTests := []struct {
+		a          ParamCurve
+		asteps     int
+		al, l      Length
+		trimTo, tl Length
+	}{
+		{
+			ParamLinear(PtXy(1, 1), PtXy(1, 11)),
+			16, 10.0, 10.0,
+			5., 5.,
+		}, {
+			ParamCubic(PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10)),
+			16, 81.79, 81.7889377631191,
+			65., 65.,
+		}, {
+			ParamCubic(PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80)),
+			16, 306.21, 306.2137924899652,
+			100., 100.,
+		}, {
+			ParamQuartic(PtXy(-2.42, -8.24), PtXy(-0.14, -2.94), PtXy(5.74, -8.84),
+				PtXy(9.96, 0.4), PtXy(13.78, -5.2)),
+			16, 18.18, 18.1824891479602,
+			5., 5.,
+		},
+	}
+	for h, test := range lengthTests {
+		a := test.a
+		length := a.ApproxLength(test.asteps)
+		if !IsEqual(length.Round(), test.al.Round()) {
+			t.Errorf("[%d](%s).ApproxLength(%d) failed. %v != %v",
+				h, a, test.asteps, length.Round(), test.al.Round())
+		}
+		length = a.Length()
+		if !IsEqual(length, test.l) {
+			t.Errorf("[%d](%s).Length() failed. %v != %v",
+				h, a, length, test.l)
+		}
+		b, _ := a.SplitAtLength(test.trimTo)
+		length = b.Length() * 10
+		tl := test.tl * 10
+		if !IsEqual(length.Round(), tl.Round()) {
+			t.Errorf("[%d](%s).TrimToLength() failed. %v != %v",
+				h, a, length, test.tl)
 		}
 	}
 

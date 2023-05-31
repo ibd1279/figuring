@@ -7,15 +7,20 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 )
 
+// Coefficienter is an interface for all the equation types that depend on coefficients.
 type Coefficienter interface {
 	Coefficients() []float64
 }
 
 var (
+	// LineXAxis is the line that represents the X axis.
 	LineXAxis Line = LineAbc(0, 1, 0)
+
+	// LineYAxis is the line that represents the Y axis.
 	LineYAxis Line = LineAbc(1, 0, 0)
 )
 
+// SlopeType is the type (direction) of the slope of a line.
 type SlopeType uint
 
 const (
