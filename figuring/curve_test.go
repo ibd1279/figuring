@@ -814,7 +814,84 @@ func TestBezier(t *testing.T) {
 	}
 
 	// TightBox
-	// TODO depends on rotated rectangle polygons.
+	tightBoxTests := []struct {
+		p1, p2, p3, p4 Pt
+		box            Polygon
+	}{
+		{
+			PtXy(10, 10), PtXy(10, 40), PtXy(50, 45), PtXy(45, -10),
+			PolygonPt(
+				PtXy(6.712347988, 11.878658293),
+				PtXy(45, -10),
+				PtXy(59.532851496, 15.432490118),
+				PtXy(21.245199484, 37.311148411),
+			),
+		}, {
+			PtXy(-10, -10), PtXy(100, 400), PtXy(500, 450), PtXy(450, -100),
+			PolygonPt(
+				PtXy(-10, -10),
+				PtXy(450, -100),
+				PtXy(520.340831688, 259.519806406),
+				PtXy(60.340831688, 349.519806406),
+			),
+		}, {
+			PtXy(-0.10, -0.10), PtXy(1.2, 4.1), PtXy(0.5, 4.50), PtXy(-5.45, -0.1),
+			PolygonPt(
+				PtXy(0.451704996, 3.201702789),
+				PtXy(-5.45, 3.201702789),
+				PtXy(-5.45, -0.1),
+				PtXy(0.451704996, -0.1),
+			),
+		}, {
+			PtXy(51, 113), PtXy(37, 245), PtXy(138, 245), PtXy(152, 150),
+			PolygonPt(
+				PtXy(51, 113),
+				PtXy(154.464544376, 150.90285289),
+				PtXy(125.554932261, 229.818280554),
+				PtXy(22.090387886, 191.915427664),
+			),
+		}, {
+			PtXy(110, 150), PtXy(25, 190), PtXy(210, 250), PtXy(210, 30),
+			PolygonPt(
+				PtXy(82.568952748, 173.783261538),
+				PtXy(205.50787123, 26.256559359),
+				PtXy(251.989423465, 64.991186221),
+				PtXy(129.050504983, 212.5178884),
+			),
+		}, {
+			PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80),
+			PolygonPt(
+				PtXy(421.056718144, 108.080731903),
+				PtXy(193.102651037, 185.182842836),
+				PtXy(167.718784596, 110.13488988),
+				PtXy(395.672851703, 33.032778947),
+			),
+		}, {
+			PtXy(285, 39), PtXy(129, 126), PtXy(248, 201), PtXy(127, 32),
+			PolygonPt(
+				PtXy(280.65385548, 137.098690599),
+				PtXy(122.65385548, 130.098690599),
+				PtXy(127, 32),
+				PtXy(285, 39),
+			),
+		}, {
+			PtXy(70, 250), PtXy(120, 15), PtXy(20, 95), PtXy(225, 80),
+			PolygonPt(
+				PtXy(-2.919229782, 183.514819905),
+				PtXy(152.080770218, 13.514819905),
+				PtXy(225, 80),
+				PtXy(70, 250),
+			),
+		},
+	}
+	for h, test := range tightBoxTests {
+		a := BezierPt(test.p1, test.p2, test.p3, test.p4)
+		box := a.TightBox()
+		if !IsEqualPts(box, test.box) {
+			t.Errorf("[%d](%s).TightBox() failed. %v != %v",
+				h, a, box, test.box)
+		}
+	}
 
 	// Inflections
 	inflectionTests := []struct {

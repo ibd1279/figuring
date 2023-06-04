@@ -282,7 +282,7 @@ func TestRayIntersection(t *testing.T) {
 			}
 		}
 
-		rlpts := IntersectionRayLine(a, b.Line())
+		rlpts := IntersectionLineRay(b.Line(), a)
 		if len(rlpts) != len(test.rlpts) {
 			t.Fatalf("[%d]IntersectionRayLine(%v, %v) (length) failed. %v != %v",
 				h, a, b.Line(), rlpts, test.rlpts)
@@ -312,7 +312,7 @@ func TestRayIntersection(t *testing.T) {
 	}
 	for h, test := range raySegmentTests {
 		a, b := test.a, test.b
-		pts := IntersectionRaySegment(a, b)
+		pts := IntersectionSegmentRay(b, a)
 		if len(pts) != len(test.pts) {
 			t.Fatalf("[%d]IntersectionRaySegment(%v, %v) (length) failed. %v != %v",
 				h, a, b, pts, test.pts)
@@ -498,7 +498,7 @@ func TestSegmentIntersection(t *testing.T) {
 	}
 	for h, test := range segmentLineTests {
 		a, b := test.a, test.b
-		pts := IntersectionSegmentLine(a, b)
+		pts := IntersectionLineSegment(b, a)
 		if len(pts) != len(test.pts) {
 			t.Fatalf("[%d]IntersectionSegmentLine(%v, %v) (length) failed. %v != %v",
 				h, a, b, pts, test.pts)

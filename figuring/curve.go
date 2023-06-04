@@ -581,6 +581,17 @@ func (curve Bezier) SplitAtT(t float64) (Bezier, Bezier) {
 		)
 }
 
+func (curve Bezier) TightBox() Polygon {
+	translate, rotate, scale, aligned := curve.AlignOnX()
+	boundingBox := aligned.BoundingBox()
+	box := PolygonFromRectangle(boundingBox)
+	if !IsZero(scale) {
+		box = box.Scale(VectorIj(scale, scale))
+	}
+	box = box.Rotate(-rotate, PtOrig).Translate(translate.Invert())
+	return box
+}
+
 // String returns a string representation of the bezier. Format allows the
 // curve to be pasted into Geogebra.
 func (curve Bezier) String() string {

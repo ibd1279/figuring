@@ -240,72 +240,6 @@ func RotateOrTranslateToXAxis(a Line, pts []Pt) []Pt {
 	return pts
 }
 
-// IntersectionLineLine returns the intersection points of two lines. returns
-// an empty slice if the lines do not intersect.
-func IntersectionLineLine(a, b Line) []Pt {
-	aTheta, bTheta := a.Angle(), b.Angle()
-	if IsEqual(aTheta, bTheta) {
-		// Parallel lines cannot meet in this geometry.
-		// also catches the same line passed twice
-		return nil
-	}
-
-	var p Pt
-	switch {
-	case a.IsUnknown():
-		fallthrough
-	case b.IsUnknown():
-		return nil
-	case a.IsVertical():
-		b, a = a, b
-		fallthrough
-	case b.IsVertical():
-		x := b.XForY(0)
-		y := a.YForX(x)
-		p = PtXy(x, y)
-	case a.IsHorizontal():
-		b, a = a, b
-		fallthrough
-	case b.IsHorizontal():
-		y := b.YForX(0)
-		x := a.XForY(y)
-		p = PtXy(x, y)
-	default:
-		na, nb := a.NormalizeY(), b.NormalizeY()
-		ma, _, ba := na.Abc()
-		mb, _, bb := nb.Abc()
-
-		x := Length((bb - ba) / (mb - ma))
-		y := b.YForX(x)
-
-		p = PtXy(x, y)
-	}
-
-	return []Pt{p}
-}
-
-func IntersectionLineBezier(a Line, b Bezier) []Pt {
-	bb := b.BoundingBox()
-	grossIntersections := IntersectionRectangleLine(bb, a)
-	if len(grossIntersections) == 0 {
-		return nil
-	}
-
-	var pts []Pt = RotateOrTranslateToXAxis(a, b.Points())
-
-	// At this point, the line is now the X axis. Find the roots of the curve.
-	b2 := BezierPt(pts[0], pts[1], pts[2], pts[3])
-	yr := b2.y.Roots()
-	roots := make([]Pt, 0, len(yr))
-	for h := 0; h < len(yr); h++ {
-		if 0 <= yr[h] && yr[h] <= 1.0 {
-			roots = append(roots, b.PtAtT(yr[h]))
-		}
-	}
-
-	return roots
-}
-
 // Ray represents a geometric ray, with a specific starting point and a directional vector.
 type Ray struct {
 	b Pt
@@ -348,35 +282,6 @@ func FilterPtsRay(r Ray, pts []Pt) (ret []Pt) {
 	return ret
 }
 
-func IntersectionRayLine(a Ray, b Line) []Pt {
-	aLine := a.Line()
-	pts := FilterPtsRay(a, IntersectionLineLine(aLine, b))
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return pts
-}
-func IntersectionRayRay(a Ray, b Ray) []Pt {
-	aLine := a.Line()
-	bLine := b.Line()
-	pts := FilterPtsRay(a, FilterPtsRay(b, IntersectionLineLine(aLine, bLine)))
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return pts
-}
-func IntersectionRaySegment(a Ray, b Segment) []Pt {
-	aLine := a.Line()
-	pts := FilterPtsRay(a, IntersectionSegmentLine(b, aLine))
-	if len(pts) == 0 {
-		return nil
-	}
-
-	return pts
-}
-
 // Segment represents a line with a fixed slope between two points.
 type Segment struct {
 	b, e Pt
@@ -414,68 +319,6 @@ func (s Segment) String() string {
 	return fmt.Sprintf("Segment(%v, %v)", s.b, s.e)
 }
 func (s Segment) Reverse() Segment { return SegmentPt(s.e, s.b) }
-
-func IntersectionSegmentSegment(a, b Segment) []Pt {
-	a1 := a.End().Y() - a.Begin().Y()
-	b1 := a.Begin().X() - a.End().X()
-	c1 := a1*a.Begin().X() + b1*a.Begin().Y()
-
-	a2 := b.End().Y() - b.Begin().Y()
-	b2 := b.Begin().X() - b.End().X()
-	c2 := a2*b.Begin().X() + b2*b.Begin().Y()
-
-	det := a1*b2 - a2*b1
-	if IsZero(det) {
-		return nil
-	}
-	x := (b2*c1 - b1*c2) / det
-	y := (a1*c2 - a2*c1) / det
-
-	alx, amx, aly, amy := LimitsPts(a.Points())
-	blx, bmx, bly, bmy := LimitsPts(b.Points())
-
-	lx, mx := Maximum(alx, blx), Minimum(amx, bmx)
-	ly, my := Maximum(aly, bly), Minimum(amy, bmy)
-
-	if lx <= x && x <= mx && ly <= y && y <= my {
-		return []Pt{PtXy(x, y)}
-	}
-	return nil
-}
-func IntersectionSegmentLine(a Segment, b Line) []Pt {
-	aLine := LineFromPt(a.Begin(), a.End())
-	potentialPoints := IntersectionLineLine(aLine, b)
-	if len(potentialPoints) == 0 {
-		return nil
-	}
-
-	lx, mx, ly, my := LimitsPts(a.Points())
-	for _, p := range potentialPoints {
-		x, y := p.XY()
-		if lx <= x && x <= mx && ly <= y && y <= my {
-			return []Pt{p}
-		}
-	}
-	return nil
-}
-
-func IntersectionSegmentBezier(a Segment, b Bezier) []Pt {
-	aLine := LineFromPt(a.Begin(), a.End())
-	potentialPoints := IntersectionLineBezier(aLine, b)
-	if len(potentialPoints) == 0 {
-		return nil
-	}
-
-	lx, mx, ly, my := LimitsPts(a.Points())
-	points := make([]Pt, 0, len(potentialPoints))
-	for _, p := range potentialPoints {
-		x, y := p.XY()
-		if lx <= x && x <= mx && ly <= y && y <= my {
-			points = append(points, p)
-		}
-	}
-	return points
-}
 
 func IsEqualPts[T OrderedPtser](a, b T) bool {
 	as, bs := a.Points(), b.Points()

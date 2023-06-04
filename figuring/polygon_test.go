@@ -142,6 +142,69 @@ func TestIntersectionRectangle(t *testing.T) {
 	}
 }
 
+func TestPolygon(t *testing.T) {
+	identityTests := []struct {
+		a      Polygon
+		s      string
+		perim  Length
+		angles []Radians
+	}{
+		{
+			TriangleEquilateral,
+			"Polygon(Point({0, 0}), Point({0.866025404, -0.5}), Point({0.866025404, 0.5}))",
+			3,
+			[]Radians{math.Pi / 3., math.Pi / 3., math.Pi / 3},
+		}, {
+			Square,
+			"Polygon(Point({0, 0}), Point({1, 0}), Point({1, 1}), Point({0, 1}))",
+			4,
+			[]Radians{math.Pi / 2., math.Pi / 2., math.Pi / 2., math.Pi / 2.},
+		},
+	}
+	for h, test := range identityTests {
+		a := test.a
+		if s := a.String(); s != test.s {
+			t.Errorf("[%d](%s).String() failed. %s != %s",
+				h, a, s, test.s)
+		}
+		if perim := a.Perimeter(); !IsEqual(perim, test.perim) {
+			t.Errorf("[%d](%s).Perimeter() failed. %f != %f",
+				h, a, perim, test.perim)
+		}
+		angles := a.Angles()
+		if len(angles) != len(test.angles) {
+			t.Fatalf("[%d](%s).Angles() failed. %v != %v",
+				h, a, angles, test.angles)
+		}
+		for i := 0; i < len(angles); i++ {
+			if !IsEqual(angles[i], test.angles[i]) {
+				t.Errorf("[%d][%d](%s).Angles() failed. %v != %v",
+					h, i, a, angles[i], test.angles[i])
+			}
+		}
+	}
+
+	errorTests := []struct {
+		a     Polygon
+		isErr bool
+	}{
+		{PolygonPt(PtXy(1, 1), PtXy(5, 5), PtXy(0, 3)), false},
+		{PolygonPt(PtXy(-1, -1), PtXy(-5, -5), PtXy(0, -3)), false},
+		{PolygonPt(PtXy(Length(math.NaN()), 1), PtXy(5, 5), PtXy(0, 3)), true},
+		{PolygonPt(PtXy(1, 1), PtXy(5, Length(math.NaN())), PtXy(0, 3)), true},
+		{PolygonPt(PtXy(1, Length(math.Inf(1))), PtXy(5, 5), PtXy(0, 3)), true},
+		{PolygonPt(PtXy(1, 1), PtXy(Length(math.Inf(-1)), 5), PtXy(0, 3)), true},
+	}
+	for h, test := range errorTests {
+		a := test.a
+		_, err := a.OrErr()
+		if (err != nil) != test.isErr {
+			t.Errorf("[%d](%v).OrErr() failed. %t != %t. %v",
+				h, test.a, (err != nil), test.isErr, err)
+		}
+	}
+}
+
 func BenchmarkRectangleLine(b *testing.B) {
 	a := RectanglePt(PtXy(1, 1), PtXy(5, 5))
 	c := LineFromPt(PtOrig, PtXy(6, 6))

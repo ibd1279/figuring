@@ -126,66 +126,6 @@ func (r Rectangle) Width() Length {
 	return w
 }
 
-func IntersectionRectangleLine(a Rectangle, b Line) []Pt {
-	min, max := a.MinPt(), a.MaxPt()
-
-	var s Segment
-	switch {
-	case b.IsVertical():
-		x := b.XForY(0)
-		s = SegmentPt(PtXy(x, min.Y()), PtXy(x, max.Y()))
-	case b.IsHorizontal():
-		y := b.YForX(0)
-		s = SegmentPt(PtXy(min.X(), y), PtXy(max.X(), y))
-	default:
-		ly, lerr := b.YForX(min.X()).OrErr()
-		my, merr := b.YForX(max.X()).OrErr()
-		if lerr == nil && merr == nil {
-			s = SegmentPt(PtXy(min.X(), ly), PtXy(max.X(), my))
-		} else {
-			// Don't check for errors here since there is no fall
-			// back. let the Segment carry the error.
-			lx := b.XForY(min.Y())
-			mx := b.XForY(max.Y())
-			s = SegmentPt(PtXy(lx, min.Y()), PtXy(mx, max.Y()))
-		}
-	}
-	clipped := ClipToRectangleSegment(a, s)
-	if len(clipped) == 0 {
-		return nil
-	}
-	pts := make([]Pt, 0, len(clipped)*2)
-	for h := 0; h < len(clipped); h++ {
-		pts = append(pts, clipped[h].Points()...)
-	}
-	return pts
-}
-
-func IntersectionRectangleSegment(a Rectangle, b Segment) []Pt {
-	min, max := a.MinPt(), a.MaxPt()
-
-	clipped := ClipToRectangleSegment(a, b)
-	if len(clipped) == 0 {
-		return nil
-	}
-	pts := make([]Pt, 0, len(clipped)*2)
-	for h := 0; h < len(clipped); h++ {
-		x, y := clipped[h].Begin().XY()
-		xequal := IsEqual(x, min.X()) || IsEqual(x, max.X())
-		yequal := IsEqual(y, min.Y()) || IsEqual(y, max.Y())
-		if xequal || yequal {
-			pts = append(pts, clipped[h].Begin())
-		}
-		x, y = clipped[h].End().XY()
-		xequal = IsEqual(x, min.X()) || IsEqual(x, max.X())
-		yequal = IsEqual(y, min.Y()) || IsEqual(y, max.Y())
-		if xequal || yequal {
-			pts = append(pts, clipped[h].End())
-		}
-	}
-	return pts
-}
-
 // ClipToRectangleSegment Clips the provided provided segment, keeping only the
 // parts of the segment inside the rectangle. Returns an empty slice if the
 // segment doesn't exist inside the rectangle.
@@ -259,7 +199,35 @@ func PolygonPt(pts ...Pt) Polygon {
 		pts: pts,
 	}
 }
-func (poly Polygon) Angles() []Radians { return []Radians{} }
+func PolygonFromRectangle(r Rectangle) Polygon {
+	min, max := r.MinPt(), r.MaxPt()
+	return PolygonPt(
+		min,
+		PtXy(max.X(), min.Y()),
+		max,
+		PtXy(min.X(), max.Y()),
+	)
+}
+
+func (poly Polygon) Angles() []Radians {
+	angles := make([]Radians, 0, len(poly.pts))
+	sides := poly.Sides()
+	prev := sides[len(sides)-1]
+	for h := 0; h < len(sides); h++ {
+		curr := sides[h]
+		a0 := (prev.Angle() + math.Pi).Normalize()
+		a1 := curr.Angle()
+		var a Radians
+		if a1 > a0 {
+			a = 2.0*math.Pi - (a1 - a0)
+		} else {
+			a = a0 - a1
+		}
+		angles = append(angles, a.Normalize())
+		prev = curr
+	}
+	return angles
+}
 func (poly Polygon) Perimeter() Length {
 	var sum Length
 	for _, side := range poly.Sides() {
@@ -269,7 +237,16 @@ func (poly Polygon) Perimeter() Length {
 }
 func (poly Polygon) Points() []Pt { return poly.pts[:] }
 func (poly Polygon) OrErr() (Polygon, *FloatingPointError) {
-	return poly, nil
+	var err *FloatingPointError
+	for _, p := range poly.pts {
+		_, perr := p.OrErr()
+		if perr != nil && perr.IsNaN() {
+			return poly, perr
+		} else if perr != nil {
+			err = perr
+		}
+	}
+	return poly, err
 }
 func (poly Polygon) Rotate(theta Radians, origin Pt) Polygon {
 	return PolygonPt(RotatePts(theta, origin, poly.pts[:])...)
@@ -298,25 +275,4 @@ func (poly Polygon) String() string {
 }
 func (poly Polygon) Translate(direction Vector) Polygon {
 	return PolygonPt(TranslatePts(direction, poly.pts[:])...)
-}
-
-func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {
-	sides := a.Sides()
-	ptset := make([]Pt, 0, 4)
-	for _, aside := range sides {
-		ptset = append(ptset, IntersectionSegmentSegment(aside, b)...)
-	}
-	if len(ptset) == 0 {
-		return nil
-	}
-
-	ptset = SortPts(ptset)
-	pts := make([]Pt, 1, len(ptset))
-	pts[0] = ptset[0]
-	for h := 1; h < len(ptset); h++ {
-		if !IsEqualPair(pts[len(pts)-1], ptset[h]) {
-			pts = append(pts, ptset[h])
-		}
-	}
-	return pts
 }
