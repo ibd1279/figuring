@@ -1030,9 +1030,6 @@ func TestBezier(t *testing.T) {
 
 	// Distance Intervals
 	// TODO Not sure how I want this to work.
-
-	// Intersections
-	// TODO depends on intersections decision.
 }
 
 func BenchmarkBezierLength(b *testing.B) {

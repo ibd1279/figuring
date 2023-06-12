@@ -1,5 +1,9 @@
 package figuring
 
+import (
+	"math"
+)
+
 // --- Line Dominant Intersections ---
 
 // IntersectionLineLine returns the intersection points of two lines. returns
@@ -36,6 +40,7 @@ func IntersectionLineLine(a, b Line) []Pt {
 		na, nb := a.NormalizeY(), b.NormalizeY()
 		ma, _, ba := na.Abc()
 		mb, _, bb := nb.Abc()
+		ba, bb = -ba, -bb
 
 		x := Length((bb - ba) / (mb - ma))
 		y := b.YForX(x)
@@ -44,30 +49,6 @@ func IntersectionLineLine(a, b Line) []Pt {
 	}
 
 	return []Pt{p}
-}
-
-// IntersectionLineBezier returns the intersection points of a line and a
-// bezier. Returns an empty slice if the two do not intersect.
-func IntersectionLineBezier(a Line, b Bezier) []Pt {
-	bb := b.BoundingBox()
-	grossIntersections := IntersectionRectangleLine(bb, a)
-	if len(grossIntersections) == 0 {
-		return nil
-	}
-
-	var pts []Pt = RotateOrTranslateToXAxis(a, b.Points())
-
-	// At this point, the line is now the X axis. Find the roots of the curve.
-	b2 := BezierPt(pts[0], pts[1], pts[2], pts[3])
-	yr := b2.y.Roots()
-	roots := make([]Pt, 0, len(yr))
-	for h := 0; h < len(yr); h++ {
-		if 0 <= yr[h] && yr[h] <= 1.0 {
-			roots = append(roots, b.PtAtT(yr[h]))
-		}
-	}
-
-	return roots
 }
 
 // IntersectionLineRay returns the intersection points of a line and a
@@ -99,6 +80,30 @@ func IntersectionLineSegment(a Line, b Segment) []Pt {
 		}
 	}
 	return nil
+}
+
+// IntersectionLineBezier returns the intersection points of a line and a
+// bezier. Returns an empty slice if the two do not intersect.
+func IntersectionLineBezier(a Line, b Bezier) []Pt {
+	bb := b.BoundingBox()
+	grossIntersections := IntersectionRectangleLine(bb, a)
+	if len(grossIntersections) == 0 {
+		return nil
+	}
+
+	var pts []Pt = RotateOrTranslateToXAxis(a, b.Points())
+
+	// At this point, the line is now the X axis. Find the roots of the curve.
+	b2 := BezierPt(pts[0], pts[1], pts[2], pts[3])
+	yr := b2.y.Roots()
+	roots := make([]Pt, 0, len(yr))
+	for h := 0; h < len(yr); h++ {
+		if 0 <= yr[h] && yr[h] <= 1.0 {
+			roots = append(roots, b.PtAtT(yr[h]))
+		}
+	}
+
+	return roots
 }
 
 // IntersectionRayRay returns the intersection points of two rays
@@ -240,6 +245,49 @@ func IntersectionRectangleSegment(a Rectangle, b Segment) []Pt {
 	return pts
 }
 
+func IntersectionRectangleRectangle(a Rectangle, b Rectangle) []Rectangle {
+	overlap := func(amax, bmax Length) Length {
+		if bmax < amax {
+			return bmax
+		}
+		return amax
+	}
+
+	var lx, mx Length
+	switch {
+	case IsEqual(a.MinPt().X(), b.MinPt().X()):
+		lx = a.MinPt().X()
+		mx = overlap(a.MaxPt().X(), b.MaxPt().X())
+	case b.MinPt().X() < a.MinPt().X():
+		a, b = b, a
+		fallthrough
+	case a.MinPt().X() < b.MinPt().X():
+		if b.MinPt().X() > a.MaxPt().X() {
+			return nil
+		}
+		lx = b.MinPt().X()
+		mx = overlap(a.MaxPt().X(), b.MaxPt().X())
+	}
+
+	var ly, my Length
+	switch {
+	case IsEqual(a.MinPt().Y(), b.MinPt().Y()):
+		ly = a.MinPt().Y()
+		my = overlap(a.MaxPt().Y(), b.MaxPt().Y())
+	case b.MinPt().Y() < a.MinPt().Y():
+		a, b = b, a
+		fallthrough
+	case a.MinPt().Y() < b.MinPt().Y():
+		if b.MinPt().Y() > a.MaxPt().Y() {
+			return nil
+		}
+		ly = b.MinPt().Y()
+		my = overlap(a.MaxPt().Y(), b.MaxPt().Y())
+	}
+
+	return []Rectangle{RectanglePt(PtXy(lx, ly), PtXy(mx, my))}
+}
+
 func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {
 	sides := a.Sides()
 	ptset := make([]Pt, 0, 4)
@@ -250,7 +298,7 @@ func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {
 		return nil
 	}
 
-	ptset = SortPts(ptset)
+	SortPts(ptset)
 	pts := make([]Pt, 1, len(ptset))
 	pts[0] = ptset[0]
 	for h := 1; h < len(ptset); h++ {
@@ -259,4 +307,66 @@ func IntersectionPolygonSegment(a Polygon, b Segment) []Pt {
 		}
 	}
 	return pts
+}
+
+// --- Bezier Dominant Intersections ---
+
+func IntersectionBezierBezier(a, b Bezier) []Pt {
+	type combination struct {
+		a, b Pt
+	}
+
+	var xsectfunc func(Bezier, Bezier) []combination
+	xsectfunc = func(a, b Bezier) []combination {
+		var combos []combination
+		abox, bbox := a.FastBox(), b.FastBox()
+		xsect := IntersectionRectangleRectangle(abox, bbox)
+		if len(xsect) > 0 {
+			aw, ah := abox.Dims()
+			bw, bh := bbox.Dims()
+			if aw < 0.005 && ah < 0.005 && bw < 0.005 && bh < 0.005 {
+				return []combination{combination{
+					a.PtAtT(0.5), b.PtAtT(0.5),
+				}}
+			}
+			a1, a2 := a.SplitAtT(0.5)
+			b1, b2 := b.SplitAtT(0.5)
+			combos = append(combos, xsectfunc(a1, b1)...)
+			combos = append(combos, xsectfunc(a1, b2)...)
+			combos = append(combos, xsectfunc(a2, b1)...)
+			combos = append(combos, xsectfunc(a2, b2)...)
+		}
+		return combos
+	}
+
+	buffer := xsectfunc(a, b)
+
+	if len(buffer) == 0 {
+		return nil
+	}
+
+	ap := buffer[0].a
+	bp := buffer[0].b
+	lastx, lasty := ap.XY()
+	dist := ap.VectorTo(bp).Magnitude()
+	ret := []Pt{ap}
+	for _, pair := range buffer {
+		ap = pair.a
+		bp = pair.b
+		x, y := ap.XY()
+		if math.Abs(float64(x-lastx)) < 0.05 && math.Abs(float64(y-lasty)) < 0.05 {
+			newDist := ap.VectorTo(bp).Magnitude()
+			if newDist < dist {
+				lastx, lasty = x, y
+				ret[len(ret)-1] = ap
+				dist = newDist
+			}
+		} else {
+			lastx, lasty = x, y
+			dist = ap.VectorTo(bp).Magnitude()
+			ret = append(ret, ap)
+		}
+	}
+	SortPts(ret)
+	return ret
 }

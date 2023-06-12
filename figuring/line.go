@@ -81,7 +81,7 @@ func LineFromVec3(abc mgl64.Vec3) Line {
 func LineFromVector(p1 Pt, v Vector) Line {
 	b, a := v.Units()
 	c := p1.X()*a - p1.Y()*b
-	return LineAbc(a, -b, c)
+	return LineAbc(a, -b, -c)
 }
 
 // LineFromPt create a line from two points. A line is a linear equation in the
@@ -121,10 +121,17 @@ func (le Line) NormalizeX() Line {
 }
 
 // NormalizeY adjusts the coefficients of the linear function to have a 1 for
-// B. Effectively reducing the formula to ax+b=c, while maintaining the same
+// B. Effectively reducing the formula to ax+y=c, while maintaining the same
 // line. Will cause the line to be in error if \c IsVertical() is true.
 func (le Line) NormalizeY() Line {
 	return LineFromVec3(mgl64.Vec3{le.abc[0] / le.abc[1], 1, le.abc[2] / le.abc[1]})
+}
+
+// NormalizeUnit adjusts the coefficients of the linear function to have a unit
+// length of 1. Will cause the line to be in error if \c IsUnknown is true.
+func (le Line) NormalizeUnit() Line {
+	d := math.Hypot(le.abc[0], le.abc[1])
+	return LineFromVec3(mgl64.Vec3{le.abc[0] / d, le.abc[1] / d, le.abc[2] / d})
 }
 
 // OrErr checks all the coefficients of the linear function and returns a
@@ -151,29 +158,36 @@ func (le Line) String() string {
 	switch le.s {
 	case LINE_DIRECTION_UNKNOWN:
 		str = fmt.Sprintf("0x+0y=%s",
-			HumanFormat(9, le.abc[2]))
+			HumanFormat(9, -le.abc[2]))
 	case LINE_DIRECTION_HORIZONTAL:
 		str = fmt.Sprintf("%sy=%s",
 			HumanFormat(9, le.abc[1]),
-			HumanFormat(9, le.abc[2]))
+			HumanFormat(9, -le.abc[2]))
 	case LINE_DIRECTION_VERTICAL:
 		str = fmt.Sprintf("%sx=%s",
 			HumanFormat(9, le.abc[0]),
-			HumanFormat(9, le.abc[2]))
+			HumanFormat(9, -le.abc[2]))
 	case LINE_DIRECTION_SAME:
 		fallthrough
 	default:
-		sign := '+'
+		ab := '+'
 		b := le.abc[1]
 		if Signbit(b) {
-			sign = '-'
+			ab = '-'
 			b = -b
 		}
-		str = fmt.Sprintf("%sx%c%sy=%s",
+		bc := '+'
+		c := le.abc[2]
+		if Signbit(c) {
+			bc = '-'
+			c = -c
+		}
+		str = fmt.Sprintf("%sx%c%sy%c%s=0",
 			HumanFormat(9, le.abc[0]),
-			sign,
+			ab,
 			HumanFormat(9, b),
-			HumanFormat(9, le.abc[2]),
+			bc,
+			HumanFormat(9, c),
 		)
 	}
 	return str
@@ -182,8 +196,9 @@ func (le Line) String() string {
 // Vector returns the vector of the line, in the direction of A, normalized to
 // a magnitude of 1.
 func (le Line) Vector() Vector {
+	le = le.NormalizeUnit()
 	ij := mgl64.Vec2{-le.abc[1], le.abc[0]}
-	return VectorFromVec2(ij).Normalize()
+	return VectorFromVec2(ij)
 }
 
 // XForY returns the X value for a given Y. Returns \c NaN if \c IsHorizontal()
@@ -191,7 +206,7 @@ func (le Line) Vector() Vector {
 func (le Line) XForY(y Length) Length {
 	switch le.s {
 	case LINE_DIRECTION_VERTICAL:
-		return Length(le.abc[2] / le.abc[0])
+		return Length(-le.abc[2] / le.abc[0])
 	case LINE_DIRECTION_HORIZONTAL:
 		fallthrough
 	case LINE_DIRECTION_UNKNOWN:
@@ -199,7 +214,7 @@ func (le Line) XForY(y Length) Length {
 	}
 
 	a, b, c := le.Abc()
-	return -b*y/a + c/a
+	return b*y/-a - c/a
 }
 
 // YForX returns the Y value for a given X. Returns \c NaN if \c IsVertical()
@@ -207,7 +222,7 @@ func (le Line) XForY(y Length) Length {
 func (le Line) YForX(x Length) Length {
 	switch le.s {
 	case LINE_DIRECTION_HORIZONTAL:
-		return Length(le.abc[2] / le.abc[1])
+		return Length(-le.abc[2] / le.abc[1])
 	case LINE_DIRECTION_VERTICAL:
 		fallthrough
 	case LINE_DIRECTION_UNKNOWN:
@@ -215,7 +230,7 @@ func (le Line) YForX(x Length) Length {
 	}
 
 	a, b, c := le.Abc()
-	return -a*x/b + c/b
+	return -a*x/b - c/b
 }
 
 // RotateOrTranslateToXAxis rotates (or translates) \c pts towards the X-axis,

@@ -122,18 +122,21 @@ func (p Pt) VectorTo(b Pt) Vector {
 	return VectorFromVec2(ij)
 }
 
-type ptSlice []Pt
+type byXThenY []Pt
 
-func (x ptSlice) Len() int { return len(x) }
-func (x ptSlice) Less(i, j int) bool {
+func (x byXThenY) Len() int { return len(x) }
+func (x byXThenY) Less(i, j int) bool {
+	if x[i].X() == x[j].X() {
+		if x[i].Y() < x[j].Y() || (x[i].Y() != x[i].Y() && x[j].Y() == x[j].Y()) {
+			return true
+		}
+	}
 	if x[i].X() < x[j].X() || (x[i].X() != x[i].X() && x[j].X() == x[j].X()) {
-		return true
-	} else if x[i].Y() < x[j].Y() || (x[i].Y() != x[i].Y() && x[j].Y() == x[j].Y()) {
 		return true
 	}
 	return false
 }
-func (x ptSlice) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+func (x byXThenY) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
 
 // Vector represents a direction and a magnitude.
 // See https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=1000&context=facpub
@@ -379,6 +382,39 @@ func ScalePts(v Vector, pts []Pt) []Pt {
 	return ret
 }
 
+// MirrorPts mirrors the coordinates of \c pts across \c ln.
+func MirrorPts(ln Line, pts []Pt) []Pt {
+	ret := make([]Pt, len(pts))
+	switch {
+	case ln.IsHorizontal():
+		// Mirror points on Y value only
+		y := ln.YForX(0)
+		for h := 0; h < len(pts); h++ {
+			offset := pts[h].Y() - y
+			ret[h] = PtXy(pts[h].X(), y-offset)
+		}
+	case ln.IsVertical():
+		// Mirror points on X value only
+		x := ln.XForY(0)
+		for h := 0; h < len(pts); h++ {
+			offset := pts[h].X() - x
+			ret[h] = PtXy(x-offset, pts[h].Y())
+		}
+	case ln.IsUnknown():
+		// preserve the points when the line is unknown.
+		copy(ret, pts)
+	default:
+		// Mirror points based on distance to the line.
+		ln = ln.NormalizeUnit()
+		a, b, c := ln.Abc()
+		for h := 0; h < len(pts); h++ {
+			d := a*pts[h].X() + b*pts[h].Y() + c
+			ret[h] = PtXy(pts[h].X()-2*a*d, pts[h].Y()-2*b*d)
+		}
+	}
+	return ret
+}
+
 // Limits returns the min-x, max-x, min-y, max-y in that order.
 func LimitsPts(pts []Pt) (Length, Length, Length, Length) {
 	xs := make([]Length, len(pts))
@@ -390,10 +426,8 @@ func LimitsPts(pts []Pt) (Length, Length, Length, Length) {
 }
 
 // SortPts sorts \c pts.
-func SortPts(pts []Pt) []Pt {
-	ptslice := ptSlice(pts)
-	sort.Sort(ptslice)
-	return []Pt(ptslice)
+func SortPts(pts []Pt) {
+	sort.Sort(byXThenY(pts))
 }
 
 // IsEqualPair takes two objects that implement the pair interface and compares

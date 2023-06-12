@@ -388,6 +388,16 @@ func (curve Bezier) BoundingBox() Rectangle {
 	return RectanglePt(PtXy(lx, ly), PtXy(mx, my))
 }
 
+// FastBox returns an axis aligned rectangle that would include the convex
+// hull of the bezier curve. This is faster than BoundingBox, but not as
+// tightly packed.
+func (curve Bezier) FastBox() Rectangle {
+	lx, mx, ly, my := LimitsPts(curve.pts[:])
+	return Rectangle{
+		pts: [2]Pt{PtXy(lx, ly), PtXy(mx, my)},
+	}
+}
+
 // CurveType returns the type of curve this is. See BezierCurveType for more
 // details on return values.
 func (curve Bezier) CurveType() BezierCurveType {

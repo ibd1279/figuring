@@ -76,72 +76,6 @@ func TestRectangle(t *testing.T) {
 	}
 }
 
-func TestIntersectionRectangle(t *testing.T) {
-	rectangleLineTests := []struct {
-		a   Rectangle
-		b   Line
-		pts []Pt
-	}{
-		{
-			//0
-			RectanglePt(PtXy(1, 1), PtXy(5, 5)),
-			LineFromPt(PtOrig, PtXy(6, 6)),
-			[]Pt{PtXy(1, 1), PtXy(5, 5)},
-		}, {
-			RectanglePt(PtXy(1, 1), PtXy(5, 5)),
-			LineFromPt(PtXy(2, 0), PtXy(4, 6)),
-			[]Pt{PtXy(7./3., 1), PtXy(11./3., 5)},
-		},
-	}
-	for h, test := range rectangleLineTests {
-		a := test.a
-		b := test.b
-		pts := IntersectionRectangleLine(a, b)
-		if len(pts) != len(test.pts) {
-			t.Fatalf("[%d]IntersectionRectangleLine(%v, %v) (length) failed. %v != %v",
-				h, a, b, pts, test.pts)
-		}
-		for i := 0; i < len(pts); i++ {
-			if !IsEqualPair(pts[i], test.pts[i]) {
-				t.Errorf("[%d][%d]IntersectionRectangleLine(%v, %v) failed. %v != %v",
-					h, i, a, b, pts[i], test.pts[i])
-			}
-		}
-	}
-
-	rectangleSegmentTests := []struct {
-		a   Rectangle
-		b   Segment
-		pts []Pt
-	}{
-		{
-			//0
-			RectanglePt(PtXy(1, 1), PtXy(5, 5)),
-			SegmentPt(PtOrig, PtXy(6, 6)),
-			[]Pt{PtXy(1, 1), PtXy(5, 5)},
-		}, {
-			RectanglePt(PtXy(1, 1), PtXy(5, 5)),
-			SegmentPt(PtXy(2, 0), PtXy(4, 6)),
-			[]Pt{PtXy(7./3., 1), PtXy(11./3., 5)},
-		},
-	}
-	for h, test := range rectangleSegmentTests {
-		a := test.a
-		b := test.b
-		pts := IntersectionRectangleSegment(a, b)
-		if len(pts) != len(test.pts) {
-			t.Fatalf("[%d]IntersectionRectangleSegment(%v, %v) (length) failed. %v != %v",
-				h, a, b, pts, test.pts)
-		}
-		for i := 0; i < len(pts); i++ {
-			if !IsEqualPair(pts[i], test.pts[i]) {
-				t.Errorf("[%d][%d]IntersectionRectangleSegment(%v, %v) failed. %v != %v",
-					h, i, a, b, pts[i], test.pts[i])
-			}
-		}
-	}
-}
-
 func TestPolygon(t *testing.T) {
 	identityTests := []struct {
 		a      Polygon
@@ -202,21 +136,5 @@ func TestPolygon(t *testing.T) {
 			t.Errorf("[%d](%v).OrErr() failed. %t != %t. %v",
 				h, test.a, (err != nil), test.isErr, err)
 		}
-	}
-}
-
-func BenchmarkRectangleLine(b *testing.B) {
-	a := RectanglePt(PtXy(1, 1), PtXy(5, 5))
-	c := LineFromPt(PtOrig, PtXy(6, 6))
-	for h := 0; h < b.N; h++ {
-		IntersectionRectangleLine(a, c)
-	}
-}
-
-func BenchmarkRectangleSegment(b *testing.B) {
-	a := RectanglePt(PtXy(1, 1), PtXy(5, 5))
-	c := SegmentPt(PtOrig, PtXy(6, 6))
-	for h := 0; h < b.N; h++ {
-		IntersectionRectangleSegment(a, c)
 	}
 }

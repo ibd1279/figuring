@@ -102,11 +102,26 @@ func TestPt(t *testing.T) {
 		}, {
 			[]Pt{PtXy(100, 100), PtXy(100, 0), PtXy(100, 50)},
 			[]Pt{PtXy(100, 0), PtXy(100, 50), PtXy(100, 100)},
+		}, {
+			[]Pt{
+				PtXy(193.500818521, 181.747800586),
+				PtXy(217.294494267, 170.695362558),
+				PtXy(252.032894785, 96.470908849),
+				PtXy(249.900090577, 111.124387793),
+			},
+			[]Pt{
+				PtXy(193.500818521, 181.747800586),
+				PtXy(217.294494267, 170.695362558),
+				PtXy(249.900090577, 111.124387793),
+				PtXy(252.032894785, 96.470908849),
+			},
 		},
 	}
 	for h, test := range sortTests {
 		a := test.a
-		pts := SortPts(a)
+		pts := make([]Pt, len(a))
+		copy(pts, a)
+		SortPts(pts)
 		if len(pts) != len(test.pts) {
 			t.Fatalf("[%d]SortPts(%v) (length) failed. %v != %v",
 				h, a, pts, test.pts)
@@ -490,5 +505,44 @@ func TestTranformations(t *testing.T) {
 		pts := ScalePts(test.v,
 			test.slice)
 		sliceTester(h, "ScalePts", pts, test.expected)
+	}
+
+	mirrorTests := []struct {
+		le       Line
+		slice    []Pt
+		expected []Pt
+	}{
+		{
+			LineAbc(1, 0, 5),
+			[]Pt{PtXy(1, 1), PtXy(0, 1), PtXy(0, 0)},
+			[]Pt{PtXy(-11, 1), PtXy(-10, 1), PtXy(-10, 0)},
+		}, {
+			LineAbc(0, 1, -5),
+			[]Pt{PtXy(1, 1), PtXy(0, 1), PtXy(0, 0)},
+			[]Pt{PtXy(1, 9), PtXy(0, 9), PtXy(0, 10)},
+		}, {
+			LineAbc(3, 1, 5),
+			[]Pt{PtXy(1, 1), PtXy(0, 1), PtXy(0, 0)},
+			[]Pt{PtXy(-4.4, -0.8), PtXy(-3.6, -0.2), PtXy(-3, -1)},
+		}, {
+			LineAbc(-120000, 8000, 8480000000),
+			[]Pt{
+				PtXy(10000, 30000),
+				PtXy(33615.584572157, 30000),
+				PtXy(53977.76611136, 29368.33960465),
+				PtXy(72482.805033961, 27242.075509421),
+			},
+			[]Pt{
+				PtXy(134778.76106134692, 21681.415929203537),
+				PtXy(111372.1639638798, 24816.22804055181),
+				PtXy(91106.32999643745, 26893.1020123115),
+				PtXy(72482.805033961, 27242.075509421),
+			},
+		},
+	}
+	for h, test := range mirrorTests {
+		pts := MirrorPts(test.le,
+			test.slice)
+		sliceTester(h, "MirrorPts", pts, test.expected)
 	}
 }
