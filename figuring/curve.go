@@ -8,11 +8,23 @@ import (
 )
 
 var (
-	MatrixBezierCubic mgl64.Mat4 = mgl64.Mat4{
+	MatrixBezierQuadratic = mgl64.Mat3{
+		1, 0, 0,
+		-2, 2, 0,
+		1, -2, 1,
+	}
+	MatrixBezierCubic = mgl64.Mat4{
 		1, 0, 0, 0,
 		-3, 3, 0, 0,
 		3, -6, 3, 0,
 		-1, 3, -3, 1,
+	}
+	MatrixBezierQuartic = [25]float64{
+		1, 0, 0, 0, 0,
+		-4, 4, 0, 0, 0,
+		6, -12, 6, 0, 0,
+		-4, 12, -12, 4, 0,
+		1, -4, 6, -4, 1,
 	}
 )
 
@@ -20,12 +32,21 @@ var (
 // derivitive of points represented by the bezierCurve.
 //
 // https://pomax.github.io/bezierinfo/
-func deCasteljau(s []Pt, tf float64) ([]Pt, []Pt) {
+func DeCasteljauSplit(s []Pt, tf float64) ([]Pt, []Pt) {
+	switch len(s) {
+	case 0:
+		return nil, nil
+	case 1:
+		return s, s
+	}
+
+	left, right := make([]Pt, len(s)), make([]Pt, len(s))
+	left[0], right[len(s)-1] = s[0], s[len(s)-1]
+
 	t := Length(tf)
 	pts := make([]Pt, len(s))
 	copy(pts, s)
 
-	left, right := []Pt{pts[0]}, []Pt{pts[len(pts)-1]}
 	for len(pts) > 1 {
 		newpts := make([]Pt, len(pts)-1)
 		for h := 0; h < len(newpts); h++ {
@@ -33,8 +54,8 @@ func deCasteljau(s []Pt, tf float64) ([]Pt, []Pt) {
 			y := (1-t)*pts[h].Y() + t*pts[h+1].Y()
 			newpts[h] = PtXy(x, y)
 		}
-		left = append(left, newpts[0])
-		right = append(right, newpts[len(newpts)-1])
+		left[len(s)-len(newpts)] = newpts[0]
+		right[len(newpts)-1] = newpts[len(newpts)-1]
 		pts = newpts
 	}
 
@@ -51,6 +72,20 @@ func deCasteljau(s []Pt, tf float64) ([]Pt, []Pt) {
 type ParamCurve struct {
 	X, Y     Derivable
 	Min, Max float64
+}
+
+func ParamPts(pts ...Pt) ParamCurve {
+	switch len(pts) {
+	case 2:
+		return ParamLinear(pts[0], pts[1])
+	case 3:
+		return ParamQuadratic(pts[0], pts[1], pts[2])
+	case 4:
+		return ParamCubic(pts[0], pts[1], pts[2], pts[3])
+	case 5:
+		return ParamQuartic(pts[0], pts[1], pts[2], pts[3], pts[4])
+	}
+	panic("Unsupported number of points to ParamPts")
 }
 
 // ParamCubic creates a cubic bezier curve based on the four provided points.
@@ -83,14 +118,9 @@ func ParamLinear(p1, p2 Pt) ParamCurve {
 // ParamQuadratic creates a quadratic bezier curve based on the three provided
 // points.
 func ParamQuadratic(p1, p2, p3 Pt) ParamCurve {
-	M := mgl64.Mat3{
-		1, 0, 0,
-		-2, 2, 0,
-		1, -2, 1,
-	}
 	px := mgl64.Vec3{float64(p3.X()), float64(p2.X()), float64(p1.X())}
 	py := mgl64.Vec3{float64(p3.Y()), float64(p2.Y()), float64(p1.Y())}
-	xs, ys := M.Mul3x1(px), M.Mul3x1(py)
+	xs, ys := MatrixBezierQuadratic.Mul3x1(px), MatrixBezierQuadratic.Mul3x1(py)
 	return ParamCurve{
 		X:   QuadraticFromVec3(xs),
 		Y:   QuadraticFromVec3(ys),

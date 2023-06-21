@@ -6,6 +6,79 @@ import (
 	"testing"
 )
 
+func TestDeCasteljauSplit(t *testing.T) {
+	deCasteljauTests := []struct {
+		s           []Pt
+		tf          float64
+		left, right []Pt
+	}{
+		{
+			[]Pt{},
+			0.5,
+			[]Pt{}, []Pt{},
+		}, {
+			[]Pt{PtXy(0, 10)},
+			0.5,
+			[]Pt{PtXy(0, 10)}, []Pt{PtXy(0, 10)},
+		}, {
+			[]Pt{PtXy(0, 10), PtXy(20, 15)},
+			0.5,
+			[]Pt{PtXy(0, 10), PtXy(10, 12.5)},
+			[]Pt{PtXy(10, 12.5), PtXy(20, 15)},
+		}, {
+			[]Pt{PtXy(70, 250), PtXy(20, 110), PtXy(220, 60)},
+			0.5,
+			[]Pt{PtXy(70, 250), PtXy(45, 180), PtXy(82.5, 132.5)},
+			[]Pt{PtXy(82.5, 132.5), PtXy(120, 85), PtXy(220, 60)},
+		}, {
+			[]Pt{PtXy(396, 34), PtXy(89, 120), PtXy(199, 295), PtXy(260, 80)},
+			0.5,
+			[]Pt{PtXy(396, 34), PtXy(242.5, 77), PtXy(193.25, 142.25), PtXy(190, 169.875)},
+			[]Pt{PtXy(190, 169.875), PtXy(186.75, 197.5), PtXy(229.5, 187.5), PtXy(260, 80)},
+		}, {
+			[]Pt{
+				PtXy(-2.42, -8.24), PtXy(-0.14, -2.94), PtXy(5.74, -8.84),
+				PtXy(9.96, 0.4), PtXy(13.78, -5.2),
+			},
+			0.5,
+			[]Pt{
+				PtXy(-2.42, -8.24), PtXy(-1.28, -5.59), PtXy(0.76, -5.74),
+				PtXy(3.0425, -5.3975), PtXy(5.3175, -4.79),
+			},
+			[]Pt{
+				PtXy(5.3175, -4.79), PtXy(7.5925, -4.1825), PtXy(9.86, -3.31),
+				PtXy(11.87, -2.4), PtXy(13.78, -5.2),
+			},
+		},
+	}
+	for h, test := range deCasteljauTests {
+		s := test.s
+		tf := test.tf
+		left, right := DeCasteljauSplit(s, tf)
+
+		if len(left) != len(test.left) {
+			t.Fatalf("[%d]DeCasteljauSplit(%v, %f) (left) (length) failed. %+v != %+v",
+				h, s, tf, left, test.left)
+		}
+		for i := 0; i < len(left); i++ {
+			if !IsEqualPair(left[i], test.left[i]) {
+				t.Errorf("[%d][%d]DeCasteljauSplit(%v, %f) (left) failed. %+v != %+v",
+					h, i, s, tf, left[i], test.left[i])
+			}
+		}
+		if len(right) != len(test.right) {
+			t.Fatalf("[%d]DeCasteljauSplit(%v, %f) (right) (length) failed. %+v != %+v",
+				h, s, tf, right, test.right)
+		}
+		for i := 0; i < len(right); i++ {
+			if !IsEqualPair(right[i], test.right[i]) {
+				t.Errorf("[%d][%d]DeCasteljauSplit(%v, %f) (right) failed. %+v != %+v",
+					h, i, s, tf, right[i], test.right[i])
+			}
+		}
+	}
+}
+
 func TestParamCurve(t *testing.T) {
 	linearTests := []struct {
 		p1, p2   Pt
