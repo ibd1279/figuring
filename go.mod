@@ -1,4 +1,4 @@
-module ibd1279/figuring
+module github.com/ibd1279/figuring
 
 go 1.20
 
