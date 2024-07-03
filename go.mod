@@ -1,4 +1,4 @@
-module git-codecommit.eu-west-3.amazonaws.com/v1/repos/SlashPatternDraft/figuring
+module ibd1279/figuring
 
 go 1.20
 
